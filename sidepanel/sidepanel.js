@@ -231,20 +231,30 @@ function setupEventListeners() {
   }
 }
 
-// Load Tech Stack from Active Tab
+// Load Tech Stack from Active Tab and Storage
 async function loadTechStack() {
-  const tab = await getActiveTab();
-  if (tab && tab.id) {
-    try {
-      const response = await sendTabMessage(tab.id, { type: 'GET_TECH_STACK' });
-      if (response && response.techStack) {
-        renderTechStack(response.techStack);
-      }
-    } catch (err) {
-      console.warn('Could not fetch tech stack:', err);
+  chrome.storage.local.get(['currentTechStack'], async (res) => {
+    if (res.currentTechStack && res.currentTechStack.length > 0) {
+      renderTechStack(res.currentTechStack);
     }
-  }
+    const tab = await getActiveTab();
+    if (tab && tab.id) {
+      try {
+        const response = await sendTabMessage(tab.id, { type: 'GET_TECH_STACK' });
+        if (response && response.techStack) {
+          renderTechStack(response.techStack);
+          chrome.storage.local.set({ currentTechStack: response.techStack });
+        }
+      } catch (err) {
+        console.warn('Could not fetch tech stack:', err);
+      }
+    }
+  });
 }
+
+chrome.tabs.onActivated?.addListener(() => {
+  loadTechStack();
+});
 
 function renderTechStack(stack) {
   const techBadgesEl = document.getElementById('tech-stack-badges');
@@ -449,7 +459,9 @@ function showStatus(msg, type) {
 
 // Listen for incoming telemetry from content.js (Local-First Offline Rendering)
 chrome.runtime.onMessage.addListener((message) => {
-  if (message.type === 'UI_INSPECT_DATA' && message.data) {
+  if (message.type === 'TECH_STACK_UPDATED' && message.techStack) {
+    renderTechStack(message.techStack);
+  } else if (message.type === 'UI_INSPECT_DATA' && message.data) {
     currentInspectData = message.data;
     const d = message.data;
 

@@ -353,6 +353,19 @@ function handleMouseMove(e) {
   });
 }
 
+let latestTechStack = [];
+
+window.addEventListener('message', (event) => {
+  if (event.source === window && event.data && event.data.type === 'UI_DETECTIVE_STACK_RESULT') {
+    latestTechStack = event.data.data || [];
+    chrome.storage.local.set({ currentTechStack: latestTechStack });
+    chrome.runtime.sendMessage({
+      type: 'TECH_STACK_UPDATED',
+      techStack: latestTechStack
+    }).catch(() => {});
+  }
+});
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'TOGGLE_INSPECTOR') {
     if (message.isInspecting !== undefined) {
@@ -370,9 +383,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       document.removeEventListener('mousemove', handleMouseMove, true);
       removeOverlay();
     }
-    sendResponse({ isInspecting, techStack: detectTechStack() });
+    const stack = latestTechStack.length > 0 ? latestTechStack : detectTechStack();
+    sendResponse({ isInspecting, techStack: stack });
   } else if (message.type === 'GET_TECH_STACK') {
-    sendResponse({ techStack: detectTechStack() });
+    const stack = latestTechStack.length > 0 ? latestTechStack : detectTechStack();
+    sendResponse({ techStack: stack });
   }
   return true;
 });

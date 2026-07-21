@@ -27,6 +27,16 @@
         "<all_urls>"
       ],
       "js": [
+        "src/content/mainWorldDetector.js"
+      ],
+      "world": "MAIN",
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
         "content.js"
       ],
       "css": [
