@@ -320,6 +320,9 @@ function handleMouseMove(e) {
   const tailwindRadius = getTailwindBorderRadius(borderRadius, rect.width, rect.height);
   const tailwindClasses = cssToTailwind(style, rect);
 
+  const textColorHex = rgbToHex(style.color)?.hex || style.color;
+  const bgColorHex = rgbToHex(style.backgroundColor)?.hex || style.backgroundColor;
+
   const inspectData = {
     tagName: target.tagName.toLowerCase(),
     width: `${Math.round(rect.width)}px`,
@@ -330,16 +333,32 @@ function handleMouseMove(e) {
     lineHeight: style.lineHeight,
     letterSpacing: style.letterSpacing,
     color: style.color,
+    textColorHex: textColorHex,
     backgroundColor: style.backgroundColor,
+    bgColorHex: bgColorHex,
+    textAlign: style.textAlign,
+    paddingTop: style.paddingTop,
+    paddingRight: style.paddingRight,
+    paddingBottom: style.paddingBottom,
+    paddingLeft: style.paddingLeft,
     padding: padding,
+    marginTop: style.marginTop,
+    marginRight: style.marginRight,
+    marginBottom: style.marginBottom,
+    marginLeft: style.marginLeft,
     margin: margin,
     borderRadius: borderRadius,
+    boxShadow: style.boxShadow,
     border: `${style.borderWidth} ${style.borderStyle} ${style.borderColor}`,
     borderWidth: style.borderWidth,
     borderStyle: style.borderStyle,
     borderColor: style.borderColor,
     display: style.display,
     flexDirection: style.flexDirection,
+    justifyContent: style.justifyContent,
+    alignItems: style.alignItems,
+    flexWrap: style.flexWrap,
+    gridTemplateColumns: style.gridTemplateColumns,
     gap: style.gap,
     tailwindRadius: tailwindRadius,
     tailwindClasses: tailwindClasses

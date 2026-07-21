@@ -168,6 +168,26 @@ export function generateTailwindTokens(data) {
     else if (data.flexDirection === 'row-reverse') tokens.push('flex-row-reverse');
   }
 
+  // Flex Alignment
+  if (data.justifyContent && (data.display === 'flex' || data.display === 'inline-flex')) {
+    if (data.justifyContent.includes('center')) tokens.push('justify-center');
+    else if (data.justifyContent.includes('space-between')) tokens.push('justify-between');
+    else if (data.justifyContent.includes('space-around')) tokens.push('justify-around');
+    else if (data.justifyContent.includes('flex-end') || data.justifyContent.includes('end')) tokens.push('justify-end');
+    else if (data.justifyContent.includes('flex-start') || data.justifyContent.includes('start')) tokens.push('justify-start');
+  }
+
+  if (data.alignItems && (data.display === 'flex' || data.display === 'inline-flex')) {
+    if (data.alignItems.includes('center')) tokens.push('items-center');
+    else if (data.alignItems.includes('flex-start') || data.alignItems.includes('start')) tokens.push('items-start');
+    else if (data.alignItems.includes('flex-end') || data.alignItems.includes('end')) tokens.push('items-end');
+    else if (data.alignItems.includes('stretch')) tokens.push('items-stretch');
+  }
+
+  if (data.flexWrap === 'wrap') {
+    tokens.push('flex-wrap');
+  }
+
   // Gap
   if (data.gap && data.gap !== 'normal' && data.gap !== '0px') {
     const gapToken = pxToSpacingToken(data.gap);
@@ -180,6 +200,12 @@ export function generateTailwindTokens(data) {
 
   const weightCls = mapFontWeightToken(data.fontWeight);
   if (weightCls && weightCls !== 'font-normal') tokens.push(weightCls);
+
+  if (data.textAlign && data.textAlign !== 'start' && data.textAlign !== 'left') {
+    if (data.textAlign === 'center') tokens.push('text-center');
+    else if (data.textAlign === 'right') tokens.push('text-right');
+    else if (data.textAlign === 'justify') tokens.push('text-justify');
+  }
 
   // Line Height
   if (data.lineHeight && data.lineHeight !== 'normal') {
@@ -248,10 +274,14 @@ export function generateTailwindTokens(data) {
     }
   }
 
-  // Border Radius
+  // Border Radius & Shadow
   const radius = mapBorderRadiusToken(data.borderRadius, parseFloat(data.width), parseFloat(data.height));
   if (radius && radius !== 'rounded-none') {
     tokens.push(radius);
+  }
+
+  if (data.boxShadow && data.boxShadow !== 'none') {
+    tokens.push('shadow');
   }
 
   return tokens;

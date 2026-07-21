@@ -48,15 +48,20 @@ function generateCSSRules(d) {
   if (d.fontWeight) rules.push(`font-weight: ${d.fontWeight};`);
   if (d.lineHeight && d.lineHeight !== 'normal') rules.push(`line-height: ${d.lineHeight};`);
   if (d.letterSpacing && d.letterSpacing !== 'normal' && d.letterSpacing !== '0px') rules.push(`letter-spacing: ${d.letterSpacing};`);
+  if (d.textAlign && d.textAlign !== 'start') rules.push(`text-align: ${d.textAlign};`);
   if (d.color) rules.push(`color: ${d.color};`);
-  if (d.backgroundColor) rules.push(`background-color: ${d.backgroundColor};`);
+  if (d.backgroundColor && d.backgroundColor !== 'rgba(0, 0, 0, 0)' && d.backgroundColor !== 'transparent') rules.push(`background-color: ${d.backgroundColor};`);
   if (d.padding) rules.push(`padding: ${d.padding};`);
-  if (d.margin) rules.push(`margin: ${d.margin};`);
-  if (d.borderRadius) rules.push(`border-radius: ${d.borderRadius};`);
-  if (d.border) rules.push(`border: ${d.border};`);
+  if (d.margin && d.margin !== '0px 0px 0px 0px') rules.push(`margin: ${d.margin};`);
+  if (d.borderRadius && d.borderRadius !== '0px') rules.push(`border-radius: ${d.borderRadius};`);
+  if (d.border && !d.border.includes('0px none')) rules.push(`border: ${d.border};`);
+  if (d.boxShadow && d.boxShadow !== 'none') rules.push(`box-shadow: ${d.boxShadow};`);
   if (d.display) rules.push(`display: ${d.display};`);
   if (d.flexDirection && d.display && d.display.includes('flex')) rules.push(`flex-direction: ${d.flexDirection};`);
+  if (d.justifyContent && d.display && d.display.includes('flex')) rules.push(`justify-content: ${d.justifyContent};`);
+  if (d.alignItems && d.display && d.display.includes('flex')) rules.push(`align-items: ${d.alignItems};`);
   if (d.gap && d.gap !== 'normal' && d.gap !== '0px') rules.push(`gap: ${d.gap};`);
+  if (d.gridTemplateColumns && d.display && d.display.includes('grid')) rules.push(`grid-template-columns: ${d.gridTemplateColumns};`);
   return rules.join('\n');
 }
 
@@ -492,48 +497,56 @@ chrome.runtime.onMessage.addListener((message) => {
       tailwindSnippetEl.textContent = currentTailwindClasses || 'no utility classes generated';
     }
 
-    // 3. Typography
+    // 3. 📐 Layout & Alignment
+    const displayValEl = document.getElementById('display-val');
+    const flexDirectionValEl = document.getElementById('flex-direction-val');
+    const justifyContentValEl = document.getElementById('justify-content-val');
+    const alignItemsValEl = document.getElementById('align-items-val');
+    const gapValEl = document.getElementById('gap-val');
+    const gridColumnsValEl = document.getElementById('grid-columns-val');
+
+    if (displayValEl) displayValEl.textContent = d.display || '-';
+    if (flexDirectionValEl) flexDirectionValEl.textContent = d.flexDirection || '-';
+    if (justifyContentValEl) justifyContentValEl.textContent = d.justifyContent || '-';
+    if (alignItemsValEl) alignItemsValEl.textContent = d.alignItems || '-';
+    if (gapValEl) gapValEl.textContent = d.gap || '-';
+    if (gridColumnsValEl) gridColumnsValEl.textContent = d.gridTemplateColumns || '-';
+
+    // 4. 📏 Dimensions & Box Model
+    const paddingValEl = document.getElementById('padding-val');
+    const marginValEl = document.getElementById('margin-val');
+    const borderRadiusValEl = document.getElementById('border-radius-val') || document.getElementById('border-radius');
+    const borderValEl = document.getElementById('border-val');
+    const boxShadowValEl = document.getElementById('box-shadow-val');
+
+    if (paddingValEl) paddingValEl.textContent = d.padding || '-';
+    if (marginValEl) marginValEl.textContent = d.margin || '-';
+    if (borderRadiusValEl) borderRadiusValEl.textContent = d.borderRadius || '-';
+    if (borderValEl) borderValEl.textContent = d.border || '-';
+    if (boxShadowValEl) boxShadowValEl.textContent = d.boxShadow || 'none';
+
+    // 5. 🎨 Typography & Colors
     const fontEl = document.getElementById('font-family');
     const sizeEl = document.getElementById('font-size');
     const weightEl = document.getElementById('font-weight');
     const lineHeightValEl = document.getElementById('line-height-val');
     const letterSpacingValEl = document.getElementById('letter-spacing-val');
+    const textAlignValEl = document.getElementById('text-align-val');
+    const colorValEl = document.getElementById('color-val') || document.getElementById('text-color');
+    const colorSwatchEl = document.getElementById('color-swatch');
+    const bgValEl = document.getElementById('bg-val') || document.getElementById('bg-color');
+    const bgSwatchEl = document.getElementById('bg-swatch');
 
     if (fontEl) fontEl.textContent = d.fontFamily || '-';
     if (sizeEl) sizeEl.textContent = d.fontSize || '-';
     if (weightEl) weightEl.textContent = d.fontWeight || '-';
     if (lineHeightValEl) lineHeightValEl.textContent = d.lineHeight || '-';
     if (letterSpacingValEl) letterSpacingValEl.textContent = d.letterSpacing || '-';
+    if (textAlignValEl) textAlignValEl.textContent = d.textAlign || '-';
 
-    // 4. Colors
-    const colorValEl = document.getElementById('color-val') || document.getElementById('text-color');
-    const colorSwatchEl = document.getElementById('color-swatch');
-    const bgValEl = document.getElementById('bg-val') || document.getElementById('bg-color');
-    const bgSwatchEl = document.getElementById('bg-swatch');
-
-    if (colorValEl) colorValEl.textContent = d.color || '-';
+    if (colorValEl) colorValEl.textContent = d.textColorHex ? `${d.textColorHex} (${d.color})` : (d.color || '-');
     if (colorSwatchEl) colorSwatchEl.style.backgroundColor = d.color || 'transparent';
-    if (bgValEl) bgValEl.textContent = d.backgroundColor || '-';
+    if (bgValEl) bgValEl.textContent = d.bgColorHex ? `${d.bgColorHex} (${d.backgroundColor})` : (d.backgroundColor || '-');
     if (bgSwatchEl) bgSwatchEl.style.backgroundColor = d.backgroundColor || 'transparent';
-
-    // 5. Box Model & Borders
-    const paddingValEl = document.getElementById('padding-val');
-    const marginValEl = document.getElementById('margin-val');
-    const borderRadiusValEl = document.getElementById('border-radius-val') || document.getElementById('border-radius');
-    const borderValEl = document.getElementById('border-val');
-
-    if (paddingValEl) paddingValEl.textContent = d.padding || '-';
-    if (marginValEl) marginValEl.textContent = d.margin || '-';
-    if (borderRadiusValEl) borderRadiusValEl.textContent = d.borderRadius || '-';
-    if (borderValEl) borderValEl.textContent = d.border || '-';
-
-    // 6. Layout & Position
-    const displayValEl = document.getElementById('display-val');
-    const flexDirectionValEl = document.getElementById('flex-direction-val');
-    const gapValEl = document.getElementById('gap-val');
-
-    if (displayValEl) displayValEl.textContent = d.display || '-';
-    if (flexDirectionValEl) flexDirectionValEl.textContent = d.flexDirection || '-';
-    if (gapValEl) gapValEl.textContent = d.gap || '-';
   }
 });
