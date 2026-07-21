@@ -206,11 +206,10 @@ Format output as a structured prompt for v0/Cursor/Claude:
   }
 }
 
-// Auto-discovering Gemini API Call Engine with Fallback Loop
+// Auto-discovering Gemini API Call Engine with System Instructions
 async function callGeminiAPI(apiKey, promptText) {
   let availableModels = [];
 
-  // 1. Retrieve exact list of models enabled for this API key
   try {
     const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
     if (modelsRes.ok) {
@@ -220,29 +219,34 @@ async function callGeminiAPI(apiKey, promptText) {
         .map(m => m.name);
     }
   } catch (e) {
-    console.warn('Could not list models, falling back to default list.', e);
+    console.warn('Could not list models, falling back to defaults.', e);
   }
 
-  // Fallback defaults if list fetch fails
   if (availableModels.length === 0) {
     availableModels = [
-      'models/gemini-1.5-flash-latest',
+      'models/gemini-1.5-flash',
       'models/gemini-2.0-flash',
-      'models/gemini-2.5-flash',
-      'models/gemini-1.5-pro'
+      'models/gemini-1.5-flash-latest'
     ];
   }
 
   let lastError = null;
 
-  // 2. Try each available model until one succeeds
   for (const modelName of availableModels) {
+    // Skip deprecated 2.5 models
+    if (modelName.includes('2.5')) continue;
+
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`;
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          systemInstruction: {
+            parts: [{
+              text: "You are a direct code and design output engine. You MUST ONLY output the final requested content. NEVER output internal thinking, draft notes, reasoning steps, or meta-analysis."
+            }]
+          },
           contents: [{ parts: [{ text: promptText }] }]
         })
       });
@@ -251,22 +255,26 @@ async function callGeminiAPI(apiKey, promptText) {
 
       if (!response.ok) {
         lastError = new Error(data.error?.message || `HTTP ${response.status}`);
-        // If deprecated or quota 0 on this specific model, try next model in list
         continue;
       }
 
       const candidate = data.candidates?.[0];
-      const text = candidate?.content?.parts?.[0]?.text;
+      let text = candidate?.content?.parts?.[0]?.text;
+      
       if (text) {
-        return text; // Success! Return AI response.
+        // Cleaning safety net: if output starts with reasoning markers, strip them out
+        if (text.includes("Build a React component")) {
+          const cleanIdx = text.indexOf("Build a React component");
+          text = text.slice(cleanIdx);
+        }
+        return text.trim();
       }
     } catch (err) {
       lastError = err;
     }
   }
 
-  // If all models in the key's list failed, throw error
-  throw lastError || new Error('Unable to generate content with any available Gemini model.');
+  throw lastError || new Error('Unable to generate content with available Gemini models.');
 }
 
 // Display Messages
