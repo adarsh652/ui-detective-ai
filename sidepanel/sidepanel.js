@@ -147,28 +147,45 @@ function switchTab(tabName) {
 let currentSelectedData = null;
 
 function generateAIPrompt(data, targetPlatform = 'v0_cursor') {
-  if (window.promptSynthesizer && typeof window.promptSynthesizer.generateAIPrompt === 'function') {
-    return window.promptSynthesizer.generateAIPrompt(data, targetPlatform);
+  if (!data) return "// Please select an element first.";
+
+  const tag = data.tagName ? data.tagName.toLowerCase() : 'div';
+  const classes = Array.isArray(data.tailwindClasses) && data.tailwindClasses.length > 0
+    ? data.tailwindClasses.join(' ')
+    : (Array.isArray(data.classList) && data.classList.length > 0 ? data.classList.join(' ') : (data.className || 'p-4 rounded-lg bg-card text-card-foreground border'));
+  const content = (data.textContent && data.textContent.trim()) ? data.textContent.trim() : `Sample ${tag} content`;
+
+  if (targetPlatform === 'v0_cursor') {
+    return `// Prompt for v0.dev / Cursor AI / ChatGPT\n` +
+           `Create a modern, responsive React component styled with Tailwind CSS for a <${tag}> element.\n` +
+           `Classes: ${classes}\n` +
+           `Content: ${content}\n` +
+           `Styles: font ${data.fontFamily || 'sans-serif'} (${data.fontSize || '16px'}), text color ${data.textColorHex || data.color || '#000000'}, background ${data.bgColorHex || data.backgroundColor || '#ffffff'}`;
   }
-  if (!data) return '';
-  const tag = (data.tagName || 'div').toLowerCase();
-  const classes = Array.isArray(data.tailwindClasses) ? data.tailwindClasses.join(' ') : (data.className || 'p-4 rounded-lg bg-card text-card-foreground border');
-  return `// Prompt for v0.dev / Cursor AI / ChatGPT\nBuild a production-grade React component for <${tag}>\nTailwind classes: ${classes}`;
+
+  return `Create a modern, responsive React component styled with Tailwind CSS for a ${tag} element.\n` +
+         `Classes: ${classes}\n` +
+         `Content: ${content}\n` +
+         `Styles: ${JSON.stringify(data.computedStyles || {}, null, 2)}`;
 }
 
 function generateReactComponent(data) {
-  if (window.promptSynthesizer && typeof window.promptSynthesizer.generateReactSnippet === 'function') {
-    return window.promptSynthesizer.generateReactSnippet(data);
-  }
-  if (window.promptSynthesizer && typeof window.promptSynthesizer.generateReactComponent === 'function') {
-    return window.promptSynthesizer.generateReactComponent(data);
-  }
-  if (!data) return '';
-  const tag = (data.tagName || 'div').toLowerCase();
-  const classes = Array.isArray(data.tailwindClasses) && data.tailwindClasses.length > 0 ? data.tailwindClasses.join(' ') : (data.className || 'p-4 rounded-lg bg-card text-card-foreground border');
-  const text = (data.textContent || '').trim() || 'Component Content';
+  if (!data) return "// Please select an element first.";
 
-  return `export default function CustomComponent() {\n  return (\n    <${tag} className="${classes}">\n      ${text}\n    </${tag}>\n  );\n}`;
+  const tag = data.tagName ? data.tagName.toLowerCase() : 'div';
+  const classes = Array.isArray(data.tailwindClasses) && data.tailwindClasses.length > 0
+    ? data.tailwindClasses.join(' ')
+    : (Array.isArray(data.classList) && data.classList.length > 0 ? data.classList.join(' ') : (data.className || 'p-4 rounded-lg bg-card text-card-foreground border'));
+  const content = (data.textContent && data.textContent.trim()) ? data.textContent.trim() : `Sample ${tag} Content`;
+
+  return `import React from 'react';\n\n` +
+         `export default function CustomElement() {\n` +
+         `  return (\n` +
+         `    <${tag} className="${classes}">\n` +
+         `      ${content}\n` +
+         `    </${tag}>\n` +
+         `  );\n` +
+         `}`;
 }
 
 function renderBuildTab(elementData) {
