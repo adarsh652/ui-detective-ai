@@ -47,14 +47,14 @@ function setupEventListeners() {
       const isInspecting = toggleBtn.dataset.inspecting === 'true';
       const newState = !isInspecting;
       toggleBtn.dataset.inspecting = newState;
-
+      
       const btnText = document.getElementById('btn-text');
       if (btnText) {
         btnText.textContent = newState ? 'Stop Inspecting' : 'Start Inspecting';
       } else {
         toggleBtn.textContent = newState ? 'Stop Inspecting' : 'Start Inspecting';
       }
-
+      
       if (newState) {
         toggleBtn.classList.remove('btn-primary');
         toggleBtn.classList.add('btn-danger');
@@ -175,7 +175,7 @@ Analyze this inspected UI element data:
 
 Provide 4 quick bullet points evaluating Visual Hierarchy, Color Contrast, Spacing System, and 1 UX Suggestion.
 
-CRITICAL REQUIREMENT: Wrap your EXACT final 4 bullet points inside <OUTPUT> and </OUTPUT> tags. Do NOT place any thinking or notes inside the <OUTPUT> tags.`;
+CRITICAL REQUIREMENT: Wrap your EXACT final output inside <OUTPUT> and </OUTPUT> tags. Do NOT output any thinking, notes, or draft bullets outside <OUTPUT> tags.`;
   } else {
     prompt = `You are an expert AI prompt engineer for frontend AI tools (v0, Cursor, Claude).
 Create a production-ready prompt to build this component in React + Tailwind CSS:
@@ -191,7 +191,7 @@ Component Telemetry:
 
 Format the prompt to start directly with "Build a React component using Tailwind CSS...". Include exact colors, padding, typography, hover effects, and mobile responsive instructions.
 
-CRITICAL REQUIREMENT: Wrap your EXACT final output prompt inside <OUTPUT> and </OUTPUT> tags. Put all draft notes, thinking, or reasoning OUTSIDE the <OUTPUT> tags.`;
+CRITICAL REQUIREMENT: Wrap your EXACT final output prompt inside <OUTPUT> and </OUTPUT> tags. Do NOT output any thinking, notes, or draft bullets outside <OUTPUT> tags.`;
   }
 
   try {
@@ -202,7 +202,7 @@ CRITICAL REQUIREMENT: Wrap your EXACT final output prompt inside <OUTPUT> and </
   }
 }
 
-// Dynamic Model Discovery & API Call with XML Parsing
+// Dynamic Model Discovery & API Call with Robust Multi-Tier Parsing
 async function callGeminiAPI(apiKey, promptText) {
   let availableModels = [];
 
@@ -237,6 +237,11 @@ async function callGeminiAPI(apiKey, promptText) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          systemInstruction: {
+            parts: [{
+              text: "You are a strict code and prompt generation engine. OUTPUT ONLY the final requested result enclosed in <OUTPUT> and </OUTPUT> tags. NEVER include your reasoning, internal thoughts, draft steps, or meta-analysis."
+            }]
+          },
           contents: [{ parts: [{ text: promptText }] }]
         })
       });
@@ -252,19 +257,25 @@ async function callGeminiAPI(apiKey, promptText) {
       const rawText = candidate?.content?.parts?.[0]?.text;
 
       if (rawText) {
-        // Extract content strictly between <OUTPUT> and </OUTPUT>
+        // Tier 1: Extract content strictly between <OUTPUT> and </OUTPUT>
         const outputMatch = rawText.match(/<OUTPUT>([\s\S]*?)<\/OUTPUT>/i);
         if (outputMatch && outputMatch[1]) {
           return outputMatch[1].trim();
         }
 
-        // Fallback: If model omitted tags, strip thinking bullet points
-        const fallbackText = rawText
-          .replace(/^(\s*\*\s*Role:[\s\S]*?\n\n)/i, '')
-          .replace(/^(\s*\*\s*Input:[\s\S]*?\n\n)/i, '')
+        // Tier 2: For Recreate Prompts, anchor directly to "Build a React component"
+        const buildIdx = rawText.indexOf('Build a React component');
+        if (buildIdx !== -1) {
+          return rawText.slice(buildIdx).trim();
+        }
+
+        // Tier 3: Strip out typical thinking/drafting bullet point blocks
+        const cleanedText = rawText
+          .replace(/^([\s\S]*?)(?=\n\n(Build|1\.|Visual Hierarchy|Specifications|Design Specifications|Component Specifications))/i, '')
+          .replace(/^(\s*\*?\s*(Role|Input|Goal|Target Format|Tag|Typography|Text Color|Background|Padding|Border Radius|Converted Tailwind|Constraint|Step \d|Drafting|Revised|Final Prompt)[\s\S]*?\n)+/gi, '')
           .trim();
 
-        return fallbackText;
+        return cleanedText || rawText.trim();
       }
     } catch (err) {
       lastError = err;
