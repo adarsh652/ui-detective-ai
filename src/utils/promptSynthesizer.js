@@ -3,37 +3,39 @@
  * Generates 0ms latency system prompts for v0/Cursor and modular React + Tailwind JSX components.
  */
 
-export function generateAIPrompt(telemetry, targetPlatform = 'v0_cursor') {
-  if (!telemetry) return '';
+export function generateAIPrompt(data, targetPlatform = 'v0_cursor') {
+  if (!data) return '';
 
-  const tag = telemetry.tagName || 'div';
-  const width = telemetry.width || 'auto';
-  const height = telemetry.height || 'auto';
-  const font = telemetry.fontFamily || 'sans-serif';
-  const size = telemetry.fontSize || '16px';
-  const weight = telemetry.fontWeight || '400';
-  const color = telemetry.textColorHex || telemetry.color || '#000000';
-  const bg = telemetry.bgColorHex || telemetry.effectiveBgColor || telemetry.backgroundColor || '#ffffff';
-  const padding = telemetry.padding || '0px';
-  const margin = telemetry.margin || '0px';
-  const radius = telemetry.borderRadius || '0px';
-  const border = telemetry.border || 'none';
-  const shadow = telemetry.boxShadow || 'none';
-  const display = telemetry.display || 'block';
-  const flexDir = telemetry.flexDirection || 'row';
-  const justify = telemetry.justifyContent || 'start';
-  const align = telemetry.alignItems || 'stretch';
-  const gap = telemetry.gap || '0px';
-  const classes = telemetry.tailwindClasses ? (Array.isArray(telemetry.tailwindClasses) ? telemetry.tailwindClasses.join(' ') : telemetry.tailwindClasses) : '';
-  const contrast = telemetry.contrastRatio || 'N/A';
-  const touch = telemetry.touchTarget || 'N/A';
+  const tag = (data.tagName || 'div').toLowerCase();
+  const width = data.width || 'auto';
+  const height = data.height || 'auto';
+  const font = data.fontFamily || 'sans-serif';
+  const size = data.fontSize || '16px';
+  const weight = data.fontWeight || '400';
+  const color = data.textColorHex || data.color || '#000000';
+  const bg = data.bgColorHex || data.effectiveBgColor || data.backgroundColor || '#ffffff';
+  const padding = data.padding || '0px';
+  const margin = data.margin || '0px';
+  const radius = data.borderRadius || '0px';
+  const border = data.border || 'none';
+  const shadow = data.boxShadow || 'none';
+  const display = data.display || 'block';
+  const flexDir = data.flexDirection || 'row';
+  const justify = data.justifyContent || 'start';
+  const align = data.alignItems || 'stretch';
+  const gap = data.gap || '0px';
+  const classes = Array.isArray(data.tailwindClasses) && data.tailwindClasses.length > 0
+    ? data.tailwindClasses.join(' ')
+    : (data.className || (typeof data.tailwindClasses === 'string' ? data.tailwindClasses : 'p-4 rounded-lg bg-card text-card-foreground border'));
+  const contrast = data.contrastRatio || 'N/A';
+  const touch = data.touchTarget || 'N/A';
 
   if (targetPlatform === 'v0_cursor') {
     return `// Prompt for v0.dev / Cursor AI / ChatGPT
 Build a production-grade, pixel-perfect React (Next.js) component using Tailwind CSS based on this inspected element telemetry:
 
 Element Tag: <${tag}> (${width} × ${height})
-Tailwind Classes: ${classes || 'p-4 rounded-md'}
+Tailwind Classes: ${classes}
 Design Tokens:
 - Display: ${display} (direction: ${flexDir}, justify: ${justify}, align: ${align}, gap: ${gap})
 - Typography: font-family ${font}, size ${size}, weight ${weight}, color ${color}
@@ -58,16 +60,19 @@ Generate a React component matching this inspected design telemetry:
 Provide idiomatic JSX code with Tailwind utility styling and responsive behavior.`;
 }
 
-export function generateReactSnippet(telemetry) {
-  if (!telemetry) return '';
+export function generateReactSnippet(data) {
+  if (!data) return '';
 
-  const rawTag = (telemetry.tagName || 'div').toLowerCase();
+  const rawTag = (data.tagName || 'div').toLowerCase();
   const validTags = ['div', 'button', 'a', 'span', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'section', 'article', 'header', 'footer', 'nav', 'main', 'aside', 'input', 'img'];
   const tag = validTags.includes(rawTag) ? rawTag : 'div';
 
-  const classes = telemetry.tailwindClasses ? (Array.isArray(telemetry.tailwindClasses) ? telemetry.tailwindClasses.join(' ') : telemetry.tailwindClasses) : 'p-4 bg-slate-900 text-white rounded-md';
+  const classes = Array.isArray(data.tailwindClasses) && data.tailwindClasses.length > 0
+    ? data.tailwindClasses.join(' ')
+    : (data.className || (typeof data.tailwindClasses === 'string' ? data.tailwindClasses : 'p-4 rounded-lg bg-card text-card-foreground border'));
 
   const componentName = tag.charAt(0).toUpperCase() + tag.slice(1) + 'Component';
+  const text = (data.textContent || (data.hasText ? 'Inspected Component Content' : '')).trim() || 'Component Content';
 
   let elementAttributes = `className="${classes}"`;
   if (tag === 'button') {
@@ -94,22 +99,23 @@ export default function ${componentName}() {
 }`;
   }
 
-  const innerContent = telemetry.hasText ? `Inspected <${tag}> Content` : `<!-- Inspected Component Content -->`;
-
   return `import React from 'react';
 
 export default function ${componentName}() {
   return (
     <${tag} ${elementAttributes}>
-      ${innerContent}
+      ${text}
     </${tag}>
   );
 }`;
 }
 
+export const generateReactComponent = generateReactSnippet;
+
 if (typeof window !== 'undefined') {
   window.promptSynthesizer = {
     generateAIPrompt,
-    generateReactSnippet
+    generateReactSnippet,
+    generateReactComponent
   };
 }

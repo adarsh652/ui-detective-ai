@@ -141,6 +141,11 @@ function switchTab(tabName) {
   }
 }
 
+function setContainerContent(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
 // Render Build Tab Cards Reactively (0ms local synthesis)
 function updateBuildTab(data) {
   const elem = data || activeElementData || window.currentInspectedElement || currentInspectData;
@@ -148,31 +153,54 @@ function updateBuildTab(data) {
 
   const buildEmpty = document.getElementById('build-empty');
   const buildResults = document.getElementById('build-results');
-  const promptPreviewEl = document.getElementById('prompt-preview-code') || document.getElementById('prompt-output');
-  const reactSnippetEl = document.getElementById('react-snippet-code') || document.getElementById('react-code-output');
   const targetSelect = document.getElementById('prompt-target-select');
+  const targetPlatform = targetSelect ? targetSelect.value : 'v0_cursor';
 
   const fallbackText = "// Click an element on the web page to generate code.";
 
   if (!elem) {
     if (buildEmpty) buildEmpty.classList.remove('hidden');
     if (buildResults) buildResults.classList.add('hidden');
-    if (promptPreviewEl) promptPreviewEl.textContent = fallbackText;
-    if (reactSnippetEl) reactSnippetEl.textContent = fallbackText;
+    setContainerContent('prompt-preview-code', fallbackText);
+    setContainerContent('prompt-output', fallbackText);
+    setContainerContent('react-snippet-code', fallbackText);
+    setContainerContent('react-code-output', fallbackText);
     return;
   }
 
   if (buildEmpty) buildEmpty.classList.add('hidden');
   if (buildResults) buildResults.classList.remove('hidden');
 
-  const targetPlatform = targetSelect ? targetSelect.value : 'v0_cursor';
+  try {
+    let promptText = '';
+    let reactCode = '';
 
-  if (window.promptSynthesizer) {
-    const promptText = window.promptSynthesizer.generateAIPrompt(elem, targetPlatform);
-    const reactCode = window.promptSynthesizer.generateReactSnippet(elem);
+    if (window.promptSynthesizer && typeof window.promptSynthesizer.generateAIPrompt === 'function') {
+      promptText = window.promptSynthesizer.generateAIPrompt(elem, targetPlatform);
+    } else if (typeof generateAIPrompt === 'function') {
+      promptText = generateAIPrompt(elem, targetPlatform);
+    }
 
-    if (promptPreviewEl) promptPreviewEl.textContent = promptText || fallbackText;
-    if (reactSnippetEl) reactSnippetEl.textContent = reactCode || fallbackText;
+    if (window.promptSynthesizer && typeof window.promptSynthesizer.generateReactSnippet === 'function') {
+      reactCode = window.promptSynthesizer.generateReactSnippet(elem);
+    } else if (window.promptSynthesizer && typeof window.promptSynthesizer.generateReactComponent === 'function') {
+      reactCode = window.promptSynthesizer.generateReactComponent(elem);
+    } else if (typeof generateReactComponent === 'function') {
+      reactCode = generateReactComponent(elem);
+    }
+
+    setContainerContent('prompt-preview-code', promptText || '// No prompt generated.');
+    setContainerContent('prompt-output', promptText || '// No prompt generated.');
+    setContainerContent('react-snippet-code', reactCode || '// No React code generated.');
+    setContainerContent('react-code-output', reactCode || '// No React code generated.');
+  } catch (err) {
+    console.error('[UI Detective Build Error]:', err);
+    const errPrompt = `// Error generating prompt: ${err.message}`;
+    const errCode = `// Error generating React code: ${err.message}`;
+    setContainerContent('prompt-preview-code', errPrompt);
+    setContainerContent('prompt-output', errPrompt);
+    setContainerContent('react-snippet-code', errCode);
+    setContainerContent('react-code-output', errCode);
   }
 }
 
