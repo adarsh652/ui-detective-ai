@@ -39,6 +39,27 @@ async function sendTabMessage(tabId, message) {
   }
 }
 
+// Format computed telemetry into CSS rule block
+function generateCSSRules(d) {
+  if (!d) return '';
+  const rules = [];
+  if (d.fontFamily) rules.push(`font-family: ${d.fontFamily};`);
+  if (d.fontSize) rules.push(`font-size: ${d.fontSize};`);
+  if (d.fontWeight) rules.push(`font-weight: ${d.fontWeight};`);
+  if (d.lineHeight && d.lineHeight !== 'normal') rules.push(`line-height: ${d.lineHeight};`);
+  if (d.letterSpacing && d.letterSpacing !== 'normal' && d.letterSpacing !== '0px') rules.push(`letter-spacing: ${d.letterSpacing};`);
+  if (d.color) rules.push(`color: ${d.color};`);
+  if (d.backgroundColor) rules.push(`background-color: ${d.backgroundColor};`);
+  if (d.padding) rules.push(`padding: ${d.padding};`);
+  if (d.margin) rules.push(`margin: ${d.margin};`);
+  if (d.borderRadius) rules.push(`border-radius: ${d.borderRadius};`);
+  if (d.border) rules.push(`border: ${d.border};`);
+  if (d.display) rules.push(`display: ${d.display};`);
+  if (d.flexDirection && d.display && d.display.includes('flex')) rules.push(`flex-direction: ${d.flexDirection};`);
+  if (d.gap && d.gap !== 'normal' && d.gap !== '0px') rules.push(`gap: ${d.gap};`);
+  return rules.join('\n');
+}
+
 // Initialize Side Panel
 document.addEventListener('DOMContentLoaded', () => {
   loadApiKey();
@@ -59,17 +80,31 @@ function loadApiKey() {
 
 // Event Listeners Setup
 function setupEventListeners() {
+  const settingsToggleBtn = document.getElementById('settings-toggle-btn');
+  const settingsPanel = document.getElementById('settings-panel');
   const saveKeyBtn = document.getElementById('save-key-btn');
   const toggleBtn = document.getElementById('toggle-btn');
   const analyzeBtn = document.getElementById('ai-analyze-btn') || document.getElementById('analyze-btn');
   const recreateBtn = document.getElementById('ai-recreate-btn') || document.getElementById('recreate-btn');
   const copyOutputBtn = document.getElementById('copy-ai-btn') || document.getElementById('copy-output-btn');
   const copyTailwindBtn = document.getElementById('copy-tailwind-btn');
+  const copyCssBtn = document.getElementById('copy-css-btn');
 
   const apiKeyModal = document.getElementById('api-key-modal');
   const modalCloseBtn = document.getElementById('modal-close-btn');
   const modalSaveKeyBtn = document.getElementById('modal-save-key-btn');
   const modalApiKeyInput = document.getElementById('modal-api-key-input');
+
+  // Settings Drawer Toggle
+  if (settingsToggleBtn && settingsPanel) {
+    settingsToggleBtn.addEventListener('click', () => {
+      settingsPanel.classList.toggle('hidden');
+      if (!settingsPanel.classList.contains('hidden')) {
+        const input = document.getElementById('api-key-input');
+        if (input) input.focus();
+      }
+    });
+  }
 
   if (saveKeyBtn) {
     saveKeyBtn.addEventListener('click', () => {
@@ -165,7 +200,7 @@ function setupEventListeners() {
         navigator.clipboard.writeText(outputText);
         const btnText = document.getElementById('copy-ai-text') || copyOutputBtn;
         btnText.textContent = 'Copied!';
-        setTimeout(() => { btnText.textContent = 'Copy Output'; }, 2000);
+        setTimeout(() => { btnText.textContent = 'Copy AI Output'; }, 2000);
       }
     });
   }
@@ -176,8 +211,22 @@ function setupEventListeners() {
       navigator.clipboard.writeText(currentTailwindClasses).then(() => {
         const copyBtnText = document.getElementById('copy-btn-text') || copyTailwindBtn;
         copyBtnText.textContent = 'Copied!';
-        setTimeout(() => { copyBtnText.textContent = 'Copy'; }, 2000);
+        setTimeout(() => { copyBtnText.textContent = 'Copy Tailwind'; }, 2000);
       });
+    });
+  }
+
+  if (copyCssBtn) {
+    copyCssBtn.addEventListener('click', () => {
+      if (!currentInspectData) return;
+      const cssRules = generateCSSRules(currentInspectData);
+      if (cssRules) {
+        navigator.clipboard.writeText(cssRules).then(() => {
+          const copyCssText = document.getElementById('copy-css-text');
+          if (copyCssText) copyCssText.textContent = 'Copied!';
+          setTimeout(() => { if (copyCssText) copyCssText.textContent = 'Copy CSS'; }, 2000);
+        });
+      }
     });
   }
 }
@@ -219,6 +268,18 @@ async function handleAIAction(actionType) {
 
   if (!apiKey) {
     pendingAIAction = actionType;
+
+    // Auto-open settings drawer with pulse highlight
+    const settingsPanel = document.getElementById('settings-panel');
+    if (settingsPanel) {
+      settingsPanel.classList.remove('hidden');
+      settingsPanel.classList.add('pulse-highlight');
+      const input = document.getElementById('api-key-input');
+      if (input) input.focus();
+      setTimeout(() => settingsPanel.classList.remove('pulse-highlight'), 3000);
+    }
+
+    // Also reveal overlay modal
     const apiKeyModal = document.getElementById('api-key-modal');
     if (apiKeyModal) apiKeyModal.classList.remove('hidden');
     return;
@@ -263,7 +324,7 @@ Start the response directly with: "Build a React component using Tailwind CSS...
   }
 }
 
-// Dynamic Model Discovery & API Call with Native Structured JSON Generation (Phase 3)
+// Dynamic Model Discovery & API Call with Native Structured JSON Generation
 async function callGeminiAPI(apiKey, promptText) {
   let availableModels = [];
 
@@ -339,7 +400,7 @@ async function callGeminiAPI(apiKey, promptText) {
   throw lastError || new Error('Unable to generate content with available Gemini models.');
 }
 
-// Display Messages
+// Display Messages with Skeleton Loader & Auto-Scroll
 function showAIOutput(text, isError, isLoading = false) {
   const container = document.getElementById('ai-output-text') || document.getElementById('ai-output-content');
   const card = document.getElementById('ai-results-card') || document.getElementById('ai-output-card');
@@ -350,6 +411,7 @@ function showAIOutput(text, isError, isLoading = false) {
     card.classList.remove('hidden');
     card.style.display = 'block';
     card.style.borderColor = isError ? '#ef4444' : 'rgba(168, 85, 247, 0.3)';
+    card.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }
 
   if (loadingEl) {
