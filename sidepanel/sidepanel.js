@@ -207,24 +207,37 @@ Format output as a structured prompt for v0/Cursor/Claude:
 
 // Dynamic Model Discovery & API Call
 async function callGeminiAPI(apiKey, promptText) {
-  let modelName = 'models/gemini-1.5-flash';
+  const preferredModels = [
+    'models/gemini-2.0-flash',
+    'models/gemini-1.5-flash',
+    'models/gemini-2.0-flash-lite'
+  ];
+
+  let selectedModel = 'models/gemini-2.0-flash';
+
   try {
     const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
     if (modelsRes.ok) {
       const modelsData = await modelsRes.json();
-      const validModel = modelsData.models?.find(m => 
-        m.supportedGenerationMethods?.includes('generateContent') &&
-        (m.name.includes('flash') || m.name.includes('pro'))
-      );
-      if (validModel) {
-        modelName = validModel.name;
+      const availableNames = (modelsData.models || [])
+        .filter(m => m.supportedGenerationMethods?.includes('generateContent'))
+        .map(m => m.name);
+
+      // Find the first preferred model that is active for this API key
+      const match = preferredModels.find(pref => availableNames.includes(pref));
+      if (match) {
+        selectedModel = match;
+      } else {
+        // Fallback: pick any active flash model except 2.5
+        const safeModel = availableNames.find(name => !name.includes('2.5') && name.includes('flash'));
+        if (safeModel) selectedModel = safeModel;
       }
     }
   } catch (e) {
-    console.warn('Model discovery failed, using fallback endpoint.', e);
+    console.warn('Model discovery warning, using default endpoint:', e);
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/${selectedModel}:generateContent?key=${apiKey}`;
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
