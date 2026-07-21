@@ -1,3 +1,4 @@
+window.currentInspectedElement = null;
 let currentInspectData = null;
 let currentTailwindClasses = '';
 let currentRefactoredTailwind = '';
@@ -104,19 +105,31 @@ function switchTab(tabName) {
       view.classList.add('hidden');
     }
   });
+
+  if (tabName === 'build') {
+    const el = window.currentInspectedElement || currentInspectData;
+    renderBuildTab(el);
+  }
 }
 
 // Render Build Tab Cards Reactively (0ms local synthesis)
 function renderBuildTab(telemetry) {
+  const elem = telemetry || window.currentInspectedElement || currentInspectData;
+  console.log("Rendering Build Tab with element:", elem);
+
   const buildEmpty = document.getElementById('build-empty');
   const buildResults = document.getElementById('build-results');
   const promptPreviewEl = document.getElementById('prompt-preview-code');
   const reactSnippetEl = document.getElementById('react-snippet-code');
   const targetSelect = document.getElementById('prompt-target-select');
 
-  if (!telemetry) {
+  const fallbackText = "// No element selected. Click an element on the webpage to generate code.";
+
+  if (!elem) {
     if (buildEmpty) buildEmpty.classList.remove('hidden');
     if (buildResults) buildResults.classList.add('hidden');
+    if (promptPreviewEl) promptPreviewEl.textContent = fallbackText;
+    if (reactSnippetEl) reactSnippetEl.textContent = fallbackText;
     return;
   }
 
@@ -126,11 +139,11 @@ function renderBuildTab(telemetry) {
   const targetPlatform = targetSelect ? targetSelect.value : 'v0_cursor';
 
   if (window.promptSynthesizer) {
-    const promptText = window.promptSynthesizer.generateAIPrompt(telemetry, targetPlatform);
-    const reactCode = window.promptSynthesizer.generateReactSnippet(telemetry);
+    const promptText = window.promptSynthesizer.generateAIPrompt(elem, targetPlatform);
+    const reactCode = window.promptSynthesizer.generateReactSnippet(elem);
 
-    if (promptPreviewEl) promptPreviewEl.textContent = promptText;
-    if (reactSnippetEl) reactSnippetEl.textContent = reactCode;
+    if (promptPreviewEl) promptPreviewEl.textContent = promptText || fallbackText;
+    if (reactSnippetEl) reactSnippetEl.textContent = reactCode || fallbackText;
   }
 }
 
@@ -171,7 +184,7 @@ function setupEventListeners() {
   // Build Tab Engine Selector
   if (promptTargetSelect) {
     promptTargetSelect.addEventListener('change', () => {
-      if (currentInspectData) renderBuildTab(currentInspectData);
+      renderBuildTab(window.currentInspectedElement || currentInspectData);
     });
   }
 
@@ -324,8 +337,9 @@ function setupEventListeners() {
 
   if (copyCssBtn) {
     copyCssBtn.addEventListener('click', () => {
-      if (!currentInspectData) return;
-      const cssRules = generateCSSRules(currentInspectData);
+      const el = window.currentInspectedElement || currentInspectData;
+      if (!el) return;
+      const cssRules = generateCSSRules(el);
       if (cssRules) {
         navigator.clipboard.writeText(cssRules).then(() => {
           const copyCssText = document.getElementById('copy-css-text');
@@ -392,6 +406,8 @@ async function handleAIAction(actionType) {
   const inputKey = document.getElementById('api-key-input')?.value.trim();
   const apiKey = geminiApiKey || inputKey;
 
+  const activeElement = window.currentInspectedElement || currentInspectData;
+
   if (!apiKey) {
     pendingAIAction = actionType;
 
@@ -411,7 +427,7 @@ async function handleAIAction(actionType) {
     return;
   }
 
-  if (!currentInspectData) {
+  if (!activeElement) {
     showStatus('Please inspect a UI element on the webpage first!', 'error');
     switchTab('inspect');
     return;
@@ -430,7 +446,7 @@ async function handleAIAction(actionType) {
     if (understandSkeleton) understandSkeleton.classList.remove('hidden');
 
     try {
-      const audit = await gemini.analyzeDesignWithGemini(apiKey, currentInspectData);
+      const audit = await gemini.analyzeDesignWithGemini(apiKey, activeElement);
 
       const scoreEl = document.getElementById('design-score-badge');
       const summaryEl = document.getElementById('understand-summary');
@@ -464,7 +480,7 @@ async function handleAIAction(actionType) {
     }
   } else if (actionType === 'RECREATE') {
     switchTab('build');
-    renderBuildTab(currentInspectData);
+    renderBuildTab(activeElement);
     const buildResults = document.getElementById('build-results');
     if (buildResults) buildResults.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -482,118 +498,125 @@ function showStatus(msg, type) {
   }
 }
 
-// Listen for incoming telemetry from content.js (Local-First Offline Rendering)
+// Render Inspect View Metrics
+function renderInspectView(d) {
+  const emptyView = document.getElementById('empty-view');
+  const dataView = document.getElementById('data-view');
+  if (emptyView) emptyView.classList.add('hidden');
+  if (dataView) dataView.classList.remove('hidden');
+
+  // 1. Tag & Dimensions
+  const tagNameEl = document.getElementById('tag-name');
+  const dimensionsValEl = document.getElementById('dimensions-val');
+  const tailwindRadiusEl = document.getElementById('tailwind-radius') || document.getElementById('tw-radius');
+
+  if (tagNameEl) tagNameEl.textContent = d.tagName ? `<${d.tagName}>` : 'element';
+  if (dimensionsValEl) dimensionsValEl.textContent = (d.width && d.height) ? `${d.width} × ${d.height}` : '-';
+  if (tailwindRadiusEl) tailwindRadiusEl.textContent = d.tailwindRadius || 'rounded-none';
+
+  // 2. Extracted Tailwind Tokens (Instant Offline Generation via tailwindMapper)
+  const tailwindSnippetEl = document.getElementById('tailwind-snippet') || document.getElementById('tw-snippet');
+  let tokens = [];
+  if (window.tailwindMapper && typeof window.tailwindMapper.generateTailwindTokens === 'function') {
+    tokens = window.tailwindMapper.generateTailwindTokens(d);
+  } else {
+    tokens = d.tailwindClasses || [];
+  }
+  currentTailwindClasses = tokens.join(' ');
+  if (tailwindSnippetEl) {
+    tailwindSnippetEl.textContent = currentTailwindClasses || 'no utility classes generated';
+  }
+
+  // 3. 📐 Layout & Alignment
+  const displayValEl = document.getElementById('display-val');
+  const flexDirectionValEl = document.getElementById('flex-direction-val');
+  const justifyContentValEl = document.getElementById('justify-content-val');
+  const alignItemsValEl = document.getElementById('align-items-val');
+  const gapValEl = document.getElementById('gap-val');
+  const gridColumnsValEl = document.getElementById('grid-columns-val');
+
+  if (displayValEl) displayValEl.textContent = d.display || '-';
+  if (flexDirectionValEl) flexDirectionValEl.textContent = d.flexDirection || '-';
+  if (justifyContentValEl) justifyContentValEl.textContent = d.justifyContent || '-';
+  if (alignItemsValEl) alignItemsValEl.textContent = d.alignItems || '-';
+  if (gapValEl) gapValEl.textContent = d.gap || '-';
+  if (gridColumnsValEl) gridColumnsValEl.textContent = d.gridTemplateColumns || '-';
+
+  // 4. 📏 Dimensions & Box Model
+  const paddingValEl = document.getElementById('padding-val');
+  const marginValEl = document.getElementById('margin-val');
+  const borderRadiusValEl = document.getElementById('border-radius-val') || document.getElementById('border-radius');
+  const borderValEl = document.getElementById('border-val');
+  const boxShadowValEl = document.getElementById('box-shadow-val');
+
+  if (paddingValEl) paddingValEl.textContent = d.padding || '-';
+  if (marginValEl) marginValEl.textContent = d.margin || '-';
+  if (borderRadiusValEl) borderRadiusValEl.textContent = d.borderRadius || '-';
+  if (borderValEl) borderValEl.textContent = d.border || '-';
+  if (boxShadowValEl) boxShadowValEl.textContent = d.boxShadow || 'none';
+
+  // 5. 🎨 Typography & Colors
+  const fontEl = document.getElementById('font-family');
+  const sizeEl = document.getElementById('font-size');
+  const weightEl = document.getElementById('font-weight');
+  const lineHeightValEl = document.getElementById('line-height-val');
+  const letterSpacingValEl = document.getElementById('letter-spacing-val');
+  const textAlignValEl = document.getElementById('text-align-val');
+  const colorValEl = document.getElementById('color-val') || document.getElementById('text-color');
+  const colorSwatchEl = document.getElementById('color-swatch');
+  const bgValEl = document.getElementById('bg-val') || document.getElementById('bg-color');
+  const bgSwatchEl = document.getElementById('bg-swatch');
+
+  if (fontEl) fontEl.textContent = d.fontFamily || '-';
+  if (sizeEl) sizeEl.textContent = d.fontSize || '-';
+  if (weightEl) weightEl.textContent = d.fontWeight || '-';
+  if (lineHeightValEl) lineHeightValEl.textContent = d.lineHeight || '-';
+  if (letterSpacingValEl) letterSpacingValEl.textContent = d.letterSpacing || '-';
+  if (textAlignValEl) textAlignValEl.textContent = d.textAlign || '-';
+
+  if (colorValEl) colorValEl.textContent = d.textColorHex ? `${d.textColorHex} (${d.color})` : (d.color || '-');
+  if (colorSwatchEl) colorSwatchEl.style.backgroundColor = d.color || 'transparent';
+  if (bgValEl) bgValEl.textContent = d.bgColorHex ? `${d.bgColorHex} (${d.backgroundColor})` : (d.backgroundColor || '-');
+  if (bgSwatchEl) bgSwatchEl.style.backgroundColor = d.backgroundColor || 'transparent';
+
+  // 6. ♿ Accessibility & Responsiveness Audit
+  const contrastValEl = document.getElementById('a11y-contrast-val');
+  const targetValEl = document.getElementById('a11y-target-val');
+  const readerValEl = document.getElementById('a11y-reader-val');
+  const responsiveValEl = document.getElementById('a11y-responsive-val');
+
+  let contrastRatio = d.contrastRatio;
+  let touchTarget = d.touchTarget;
+  let screenReader = d.screenReader;
+  let responsiveStrategy = d.responsiveStrategy;
+
+  if ((!contrastRatio || contrastRatio === '-') && window.a11yAuditor && typeof window.a11yAuditor.runFullA11yAudit === 'function') {
+    const audit = window.a11yAuditor.runFullA11yAudit(d);
+    contrastRatio = audit.contrastRatio;
+    touchTarget = audit.touchTarget;
+    screenReader = audit.screenReader;
+    responsiveStrategy = audit.responsiveStrategy;
+  }
+
+  if (contrastValEl) contrastValEl.textContent = contrastRatio || '-';
+  if (targetValEl) targetValEl.textContent = touchTarget || '-';
+  if (readerValEl) readerValEl.textContent = screenReader || '-';
+  if (responsiveValEl) responsiveValEl.textContent = responsiveStrategy || '-';
+}
+
+// Listen for incoming telemetry from content.js (Centralized Global State Sync)
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === 'TECH_STACK_UPDATED' && message.techStack) {
     renderTechStack(message.techStack);
-  } else if (message.type === 'UI_INSPECT_DATA' && message.data) {
+  } else if (
+    (message.type === 'UI_INSPECT_DATA' || message.type === 'ELEMENT_INSPECTED' || message.type === 'ELEMENT_SELECTED') &&
+    message.data
+  ) {
+    window.currentInspectedElement = message.data;
     currentInspectData = message.data;
-    const d = message.data;
 
-    const emptyView = document.getElementById('empty-view');
-    const dataView = document.getElementById('data-view');
-    if (emptyView) emptyView.classList.add('hidden');
-    if (dataView) dataView.classList.remove('hidden');
-
-    // 1. Tag & Dimensions
-    const tagNameEl = document.getElementById('tag-name');
-    const dimensionsValEl = document.getElementById('dimensions-val');
-    const tailwindRadiusEl = document.getElementById('tailwind-radius') || document.getElementById('tw-radius');
-
-    if (tagNameEl) tagNameEl.textContent = d.tagName ? `<${d.tagName}>` : 'element';
-    if (dimensionsValEl) dimensionsValEl.textContent = (d.width && d.height) ? `${d.width} × ${d.height}` : '-';
-    if (tailwindRadiusEl) tailwindRadiusEl.textContent = d.tailwindRadius || 'rounded-none';
-
-    // 2. Extracted Tailwind Tokens (Instant Offline Generation via tailwindMapper)
-    const tailwindSnippetEl = document.getElementById('tailwind-snippet') || document.getElementById('tw-snippet');
-    let tokens = [];
-    if (window.tailwindMapper && typeof window.tailwindMapper.generateTailwindTokens === 'function') {
-      tokens = window.tailwindMapper.generateTailwindTokens(d);
-    } else {
-      tokens = d.tailwindClasses || [];
-    }
-    currentTailwindClasses = tokens.join(' ');
-    if (tailwindSnippetEl) {
-      tailwindSnippetEl.textContent = currentTailwindClasses || 'no utility classes generated';
-    }
-
-    // 3. 📐 Layout & Alignment
-    const displayValEl = document.getElementById('display-val');
-    const flexDirectionValEl = document.getElementById('flex-direction-val');
-    const justifyContentValEl = document.getElementById('justify-content-val');
-    const alignItemsValEl = document.getElementById('align-items-val');
-    const gapValEl = document.getElementById('gap-val');
-    const gridColumnsValEl = document.getElementById('grid-columns-val');
-
-    if (displayValEl) displayValEl.textContent = d.display || '-';
-    if (flexDirectionValEl) flexDirectionValEl.textContent = d.flexDirection || '-';
-    if (justifyContentValEl) justifyContentValEl.textContent = d.justifyContent || '-';
-    if (alignItemsValEl) alignItemsValEl.textContent = d.alignItems || '-';
-    if (gapValEl) gapValEl.textContent = d.gap || '-';
-    if (gridColumnsValEl) gridColumnsValEl.textContent = d.gridTemplateColumns || '-';
-
-    // 4. 📏 Dimensions & Box Model
-    const paddingValEl = document.getElementById('padding-val');
-    const marginValEl = document.getElementById('margin-val');
-    const borderRadiusValEl = document.getElementById('border-radius-val') || document.getElementById('border-radius');
-    const borderValEl = document.getElementById('border-val');
-    const boxShadowValEl = document.getElementById('box-shadow-val');
-
-    if (paddingValEl) paddingValEl.textContent = d.padding || '-';
-    if (marginValEl) marginValEl.textContent = d.margin || '-';
-    if (borderRadiusValEl) borderRadiusValEl.textContent = d.borderRadius || '-';
-    if (borderValEl) borderValEl.textContent = d.border || '-';
-    if (boxShadowValEl) boxShadowValEl.textContent = d.boxShadow || 'none';
-
-    // 5. 🎨 Typography & Colors
-    const fontEl = document.getElementById('font-family');
-    const sizeEl = document.getElementById('font-size');
-    const weightEl = document.getElementById('font-weight');
-    const lineHeightValEl = document.getElementById('line-height-val');
-    const letterSpacingValEl = document.getElementById('letter-spacing-val');
-    const textAlignValEl = document.getElementById('text-align-val');
-    const colorValEl = document.getElementById('color-val') || document.getElementById('text-color');
-    const colorSwatchEl = document.getElementById('color-swatch');
-    const bgValEl = document.getElementById('bg-val') || document.getElementById('bg-color');
-    const bgSwatchEl = document.getElementById('bg-swatch');
-
-    if (fontEl) fontEl.textContent = d.fontFamily || '-';
-    if (sizeEl) sizeEl.textContent = d.fontSize || '-';
-    if (weightEl) weightEl.textContent = d.fontWeight || '-';
-    if (lineHeightValEl) lineHeightValEl.textContent = d.lineHeight || '-';
-    if (letterSpacingValEl) letterSpacingValEl.textContent = d.letterSpacing || '-';
-    if (textAlignValEl) textAlignValEl.textContent = d.textAlign || '-';
-
-    if (colorValEl) colorValEl.textContent = d.textColorHex ? `${d.textColorHex} (${d.color})` : (d.color || '-');
-    if (colorSwatchEl) colorSwatchEl.style.backgroundColor = d.color || 'transparent';
-    if (bgValEl) bgValEl.textContent = d.bgColorHex ? `${d.bgColorHex} (${d.backgroundColor})` : (d.backgroundColor || '-');
-    if (bgSwatchEl) bgSwatchEl.style.backgroundColor = d.backgroundColor || 'transparent';
-
-    // 6. ♿ Accessibility & Responsiveness Audit
-    const contrastValEl = document.getElementById('a11y-contrast-val');
-    const targetValEl = document.getElementById('a11y-target-val');
-    const readerValEl = document.getElementById('a11y-reader-val');
-    const responsiveValEl = document.getElementById('a11y-responsive-val');
-
-    let contrastRatio = d.contrastRatio;
-    let touchTarget = d.touchTarget;
-    let screenReader = d.screenReader;
-    let responsiveStrategy = d.responsiveStrategy;
-
-    if ((!contrastRatio || contrastRatio === '-') && window.a11yAuditor && typeof window.a11yAuditor.runFullA11yAudit === 'function') {
-      const audit = window.a11yAuditor.runFullA11yAudit(d);
-      contrastRatio = audit.contrastRatio;
-      touchTarget = audit.touchTarget;
-      screenReader = audit.screenReader;
-      responsiveStrategy = audit.responsiveStrategy;
-    }
-
-    if (contrastValEl) contrastValEl.textContent = contrastRatio || '-';
-    if (targetValEl) targetValEl.textContent = touchTarget || '-';
-    if (readerValEl) readerValEl.textContent = screenReader || '-';
-    if (responsiveValEl) responsiveValEl.textContent = responsiveStrategy || '-';
-
-    // 7. 🛠️ Build Tab Reactivity (Instant 0ms local prompt & React code generation)
-    renderBuildTab(d);
+    // Instantly sync both Inspect and Build tab views
+    renderInspectView(message.data);
+    renderBuildTab(message.data);
   }
 });
