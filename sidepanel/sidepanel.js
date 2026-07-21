@@ -205,54 +205,67 @@ Format output as a structured prompt for v0/Cursor/Claude:
   }
 }
 
-// Dynamic Model Discovery & API Call
+// Auto-discovering Gemini API Call Engine with Fallback Loop
 async function callGeminiAPI(apiKey, promptText) {
-  // Use gemini-1.5-flash as the default since it has a 15 RPM free tier allowance
-  let selectedModel = 'models/gemini-1.5-flash';
+  let availableModels = [];
 
+  // 1. Retrieve exact list of models enabled for this API key
   try {
     const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
     if (modelsRes.ok) {
       const modelsData = await modelsRes.json();
-      const availableNames = (modelsData.models || [])
+      availableModels = (modelsData.models || [])
         .filter(m => m.supportedGenerationMethods?.includes('generateContent'))
         .map(m => m.name);
-
-      // Prioritize gemini-1.5-flash or 1.5-flash-latest for reliable free tier access
-      if (availableNames.includes('models/gemini-1.5-flash')) {
-        selectedModel = 'models/gemini-1.5-flash';
-      } else if (availableNames.includes('models/gemini-1.5-flash-latest')) {
-        selectedModel = 'models/gemini-1.5-flash-latest';
-      }
     }
   } catch (e) {
-    console.warn('Model discovery fallback:', e);
+    console.warn('Could not list models, falling back to default list.', e);
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/${selectedModel}:generateContent?key=${apiKey}`;
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: promptText }] }]
-    })
-  });
+  // Fallback defaults if list fetch fails
+  if (availableModels.length === 0) {
+    availableModels = [
+      'models/gemini-1.5-flash-latest',
+      'models/gemini-2.0-flash',
+      'models/gemini-2.5-flash',
+      'models/gemini-1.5-pro'
+    ];
+  }
 
-  const data = await response.json();
-  if (!response.ok) {
-    if (response.status === 429 || data.error?.message?.includes('quota')) {
-      throw new Error('⏱️ Free Tier Rate Limit Reached. Please wait ~30 seconds and try again!');
+  let lastError = null;
+
+  // 2. Try each available model until one succeeds
+  for (const modelName of availableModels) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: promptText }] }]
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        lastError = new Error(data.error?.message || `HTTP ${response.status}`);
+        // If deprecated or quota 0 on this specific model, try next model in list
+        continue;
+      }
+
+      const candidate = data.candidates?.[0];
+      const text = candidate?.content?.parts?.[0]?.text;
+      if (text) {
+        return text; // Success! Return AI response.
+      }
+    } catch (err) {
+      lastError = err;
     }
-    throw new Error(data.error?.message || `HTTP ${response.status}`);
   }
 
-  const candidate = data.candidates?.[0];
-  const text = candidate?.content?.parts?.[0]?.text;
-  if (!text) {
-    throw new Error('Received an empty response from Gemini.');
-  }
-
-  return text;
+  // If all models in the key's list failed, throw error
+  throw lastError || new Error('Unable to generate content with any available Gemini model.');
 }
 
 // Display Messages
