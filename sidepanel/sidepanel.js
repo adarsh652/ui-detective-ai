@@ -106,6 +106,34 @@ function switchTab(tabName) {
   });
 }
 
+// Render Build Tab Cards Reactively (0ms local synthesis)
+function renderBuildTab(telemetry) {
+  const buildEmpty = document.getElementById('build-empty');
+  const buildResults = document.getElementById('build-results');
+  const promptPreviewEl = document.getElementById('prompt-preview-code');
+  const reactSnippetEl = document.getElementById('react-snippet-code');
+  const targetSelect = document.getElementById('prompt-target-select');
+
+  if (!telemetry) {
+    if (buildEmpty) buildEmpty.classList.remove('hidden');
+    if (buildResults) buildResults.classList.add('hidden');
+    return;
+  }
+
+  if (buildEmpty) buildEmpty.classList.add('hidden');
+  if (buildResults) buildResults.classList.remove('hidden');
+
+  const targetPlatform = targetSelect ? targetSelect.value : 'v0_cursor';
+
+  if (window.promptSynthesizer) {
+    const promptText = window.promptSynthesizer.generateAIPrompt(telemetry, targetPlatform);
+    const reactCode = window.promptSynthesizer.generateReactSnippet(telemetry);
+
+    if (promptPreviewEl) promptPreviewEl.textContent = promptText;
+    if (reactSnippetEl) reactSnippetEl.textContent = reactCode;
+  }
+}
+
 // Event Listeners Setup
 function setupEventListeners() {
   const settingsToggleBtn = document.getElementById('settings-toggle-btn');
@@ -125,7 +153,10 @@ function setupEventListeners() {
   const copyTailwindBtn = document.getElementById('copy-tailwind-btn');
   const copyCssBtn = document.getElementById('copy-css-btn');
   const copyRefactoredBtn = document.getElementById('copy-refactored-btn');
-  const copyBuildPromptBtn = document.getElementById('copy-build-prompt-btn');
+
+  const promptTargetSelect = document.getElementById('prompt-target-select');
+  const copyPromptBtn = document.getElementById('copy-prompt-btn');
+  const copyReactCodeBtn = document.getElementById('copy-react-code-btn');
 
   const apiKeyModal = document.getElementById('api-key-modal');
   const modalCloseBtn = document.getElementById('modal-close-btn');
@@ -136,6 +167,37 @@ function setupEventListeners() {
   if (tabInspectBtn) tabInspectBtn.addEventListener('click', () => switchTab('inspect'));
   if (tabUnderstandBtn) tabUnderstandBtn.addEventListener('click', () => switchTab('understand'));
   if (tabBuildBtn) tabBuildBtn.addEventListener('click', () => switchTab('build'));
+
+  // Build Tab Engine Selector
+  if (promptTargetSelect) {
+    promptTargetSelect.addEventListener('change', () => {
+      if (currentInspectData) renderBuildTab(currentInspectData);
+    });
+  }
+
+  if (copyPromptBtn) {
+    copyPromptBtn.addEventListener('click', () => {
+      const previewEl = document.getElementById('prompt-preview-code');
+      if (!previewEl || !previewEl.textContent) return;
+      navigator.clipboard.writeText(previewEl.textContent).then(() => {
+        const textSpan = document.getElementById('copy-prompt-text');
+        if (textSpan) textSpan.textContent = 'Copied!';
+        setTimeout(() => { if (textSpan) textSpan.textContent = '📋 Copy System Prompt'; }, 2000);
+      });
+    });
+  }
+
+  if (copyReactCodeBtn) {
+    copyReactCodeBtn.addEventListener('click', () => {
+      const codeEl = document.getElementById('react-snippet-code');
+      if (!codeEl || !codeEl.textContent) return;
+      navigator.clipboard.writeText(codeEl.textContent).then(() => {
+        const textSpan = document.getElementById('copy-react-text');
+        if (textSpan) textSpan.textContent = 'Copied!';
+        setTimeout(() => { if (textSpan) textSpan.textContent = '📋 Copy React Code'; }, 2000);
+      });
+    });
+  }
 
   // Settings Drawer Toggle
   if (settingsToggleBtn && settingsPanel) {
@@ -283,17 +345,6 @@ function setupEventListeners() {
       });
     });
   }
-
-  if (copyBuildPromptBtn) {
-    copyBuildPromptBtn.addEventListener('click', () => {
-      if (!currentBuildPrompt) return;
-      navigator.clipboard.writeText(currentBuildPrompt).then(() => {
-        const textSpan = document.getElementById('copy-build-text') || copyBuildPromptBtn;
-        textSpan.textContent = 'Copied!';
-        setTimeout(() => { textSpan.textContent = 'Copy Prompt'; }, 2000);
-      });
-    });
-  }
 }
 
 // Load Tech Stack from Active Tab and Storage
@@ -413,35 +464,9 @@ async function handleAIAction(actionType) {
     }
   } else if (actionType === 'RECREATE') {
     switchTab('build');
-    const buildEmpty = document.getElementById('build-empty');
+    renderBuildTab(currentInspectData);
     const buildResults = document.getElementById('build-results');
-    const buildSkeleton = document.getElementById('build-skeleton');
-    const copyPromptBtn = document.getElementById('copy-build-prompt-btn');
-
-    if (buildEmpty) buildEmpty.classList.add('hidden');
-    if (buildResults) buildResults.classList.add('hidden');
-    if (buildSkeleton) buildSkeleton.classList.remove('hidden');
-
-    try {
-      const promptResult = await gemini.generateRecreatePromptWithGemini(apiKey, currentInspectData);
-      currentBuildPrompt = promptResult;
-
-      const promptTextEl = document.getElementById('build-prompt-text');
-      if (promptTextEl) promptTextEl.textContent = currentBuildPrompt;
-
-      if (buildSkeleton) buildSkeleton.classList.add('hidden');
-      if (copyPromptBtn) copyPromptBtn.classList.remove('hidden');
-      if (buildResults) {
-        buildResults.classList.remove('hidden');
-        buildResults.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    } catch (err) {
-      if (buildSkeleton) buildSkeleton.classList.add('hidden');
-      if (buildEmpty) {
-        buildEmpty.classList.remove('hidden');
-        showStatus(`❌ ${err.message}`, 'error');
-      }
-    }
+    if (buildResults) buildResults.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 }
 
@@ -567,5 +592,8 @@ chrome.runtime.onMessage.addListener((message) => {
     if (targetValEl) targetValEl.textContent = touchTarget || '-';
     if (readerValEl) readerValEl.textContent = screenReader || '-';
     if (responsiveValEl) responsiveValEl.textContent = responsiveStrategy || '-';
+
+    // 7. 🛠️ Build Tab Reactivity (Instant 0ms local prompt & React code generation)
+    renderBuildTab(d);
   }
 });

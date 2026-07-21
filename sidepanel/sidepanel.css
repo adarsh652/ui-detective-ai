@@ -790,3 +790,26 @@ body {
   flex-direction: column;
   gap: 10px;
 }
+
+.prompt-target-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.select-sm {
+  padding: 4px 8px;
+  font-size: 11px;
+  max-width: 140px;
+}
+
+.margin-top {
+  margin-top: 12px;
+}
+
+.build-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}

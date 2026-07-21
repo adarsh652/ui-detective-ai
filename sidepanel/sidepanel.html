@@ -334,41 +334,51 @@
 
       <!-- TAB 3: BUILD VIEW (AI Code & Prompt Synthesizer) -->
       <div id="view-build" class="tab-view hidden">
-        <div class="card ai-card">
-          <div class="ai-card-header">
-            <div class="ai-title-row">
-              <span class="ai-sparkle">🛠️</span>
-              <span class="ai-card-title">AI Component Prompt Builder</span>
+        <div id="build-empty" class="card empty-state">
+          <div class="empty-content">
+            <div class="empty-icon">🛠️</div>
+            <p class="empty-title">Prompt Engine Idle</p>
+            <p class="empty-desc">Click "Start Inspecting" and hover over an element on the webpage to instantly synthesize system prompts and React code.</p>
+          </div>
+        </div>
+
+        <div id="build-results" class="build-container hidden">
+          <!-- Card 1: AI Prompt Generator -->
+          <div class="card ai-card">
+            <div class="ai-card-header">
+              <div class="ai-title-row">
+                <span class="ai-sparkle">🤖</span>
+                <span class="ai-card-title">AI Prompt Synthesizer</span>
+              </div>
+              <button id="copy-prompt-btn" class="btn-copy">
+                <span id="copy-prompt-text">📋 Copy System Prompt</span>
+              </button>
             </div>
-            <button id="copy-build-prompt-btn" class="btn-copy hidden">
-              <span id="copy-build-text">Copy Prompt</span>
-            </button>
+            <div class="prompt-target-row">
+              <span class="metric-label">Target Engine:</span>
+              <select id="prompt-target-select" class="input-text select-sm">
+                <option value="v0_cursor">v0 / Cursor AI</option>
+                <option value="generic">Generic AI Prompt</option>
+              </select>
+            </div>
+            <div class="snippet-box">
+              <div id="prompt-preview-code" class="snippet-code"></div>
+            </div>
           </div>
 
-          <!-- Skeleton Loader -->
-          <div id="build-skeleton" class="ai-loading-container hidden">
-            <div class="skeleton-wrapper">
-              <div class="skeleton-line skeleton-title"></div>
-              <div class="skeleton-line"></div>
-              <div class="skeleton-line"></div>
-              <div class="skeleton-line skeleton-short"></div>
+          <!-- Card 2: Generated React Component -->
+          <div class="card ai-card margin-top">
+            <div class="ai-card-header">
+              <div class="ai-title-row">
+                <span class="ai-sparkle">⚡</span>
+                <span class="ai-card-title">Generated React Component</span>
+              </div>
+              <button id="copy-react-code-btn" class="btn-copy">
+                <span id="copy-react-text">📋 Copy React Code</span>
+              </button>
             </div>
-            <div class="loading-status">
-              <div class="spinner"></div>
-              <span class="loading-text">Synthesizing production prompt for v0/Cursor...</span>
-            </div>
-          </div>
-
-          <!-- Build Output View -->
-          <div id="build-content" class="build-output-container">
-            <div id="build-empty" class="empty-content">
-              <div class="empty-icon">🛠️</div>
-              <p class="empty-title">Prompt Engine Idle</p>
-              <p class="empty-desc">Inspect an element and click "Generate Recreate Prompt" to build a React + Tailwind prompt for AI code generators.</p>
-            </div>
-
-            <div id="build-results" class="build-results hidden">
-              <div id="build-prompt-text" class="ai-output"></div>
+            <div class="snippet-box">
+              <div id="react-snippet-code" class="snippet-code"></div>
             </div>
           </div>
         </div>
@@ -393,6 +403,7 @@
 
   <script src="../utils/tailwindMapper.js"></script>
   <script src="../utils/a11yAuditor.js"></script>
+  <script src="../src/utils/promptSynthesizer.js"></script>
   <script type="module" src="../src/services/gemini.js"></script>
   <script src="sidepanel.js"></script>
 </body>
