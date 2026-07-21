@@ -548,5 +548,19 @@ chrome.runtime.onMessage.addListener((message) => {
     if (colorSwatchEl) colorSwatchEl.style.backgroundColor = d.color || 'transparent';
     if (bgValEl) bgValEl.textContent = d.bgColorHex ? `${d.bgColorHex} (${d.backgroundColor})` : (d.backgroundColor || '-');
     if (bgSwatchEl) bgSwatchEl.style.backgroundColor = d.backgroundColor || 'transparent';
+
+    // 6. ♿ Accessibility & Responsiveness Audit
+    const contrastValEl = document.getElementById('a11y-contrast-val');
+    const targetValEl = document.getElementById('a11y-target-val');
+    const readerValEl = document.getElementById('a11y-reader-val');
+    const responsiveValEl = document.getElementById('a11y-responsive-val');
+
+    if (window.a11yAuditor && typeof window.a11yAuditor.runFullA11yAudit === 'function') {
+      const audit = window.a11yAuditor.runFullA11yAudit(d);
+      if (contrastValEl) contrastValEl.textContent = audit.contrast.badge || '-';
+      if (targetValEl) targetValEl.textContent = audit.touch.status || '-';
+      if (readerValEl) readerValEl.textContent = audit.a11y || '-';
+      if (responsiveValEl) responsiveValEl.textContent = audit.responsive || '-';
+    }
   }
 });

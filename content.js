@@ -298,6 +298,18 @@ function cssToTailwind(style, rect) {
   return classes;
 }
 
+function getEffectiveBackgroundColor(el) {
+  let current = el;
+  while (current && current !== document.body && current !== document.documentElement) {
+    const bg = window.getComputedStyle(current).backgroundColor;
+    if (bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)') {
+      return bg;
+    }
+    current = current.parentElement;
+  }
+  return 'rgb(255, 255, 255)';
+}
+
 function handleMouseMove(e) {
   if (!isInspecting) return;
 
@@ -320,8 +332,9 @@ function handleMouseMove(e) {
   const tailwindRadius = getTailwindBorderRadius(borderRadius, rect.width, rect.height);
   const tailwindClasses = cssToTailwind(style, rect);
 
+  const effectiveBgColor = getEffectiveBackgroundColor(target);
   const textColorHex = rgbToHex(style.color)?.hex || style.color;
-  const bgColorHex = rgbToHex(style.backgroundColor)?.hex || style.backgroundColor;
+  const bgColorHex = rgbToHex(effectiveBgColor)?.hex || effectiveBgColor;
 
   const inspectData = {
     tagName: target.tagName.toLowerCase(),
@@ -335,6 +348,7 @@ function handleMouseMove(e) {
     color: style.color,
     textColorHex: textColorHex,
     backgroundColor: style.backgroundColor,
+    effectiveBgColor: effectiveBgColor,
     bgColorHex: bgColorHex,
     textAlign: style.textAlign,
     paddingTop: style.paddingTop,
@@ -360,6 +374,14 @@ function handleMouseMove(e) {
     flexWrap: style.flexWrap,
     gridTemplateColumns: style.gridTemplateColumns,
     gap: style.gap,
+    role: target.getAttribute('role'),
+    ariaLabel: target.getAttribute('aria-label'),
+    ariaLabelledBy: target.getAttribute('aria-labelledby'),
+    alt: target.getAttribute('alt'),
+    styleAttr: target.getAttribute('style') || '',
+    hasText: !!(target.textContent && target.textContent.trim()),
+    hasOnClick: !!(target.onclick || target.hasAttribute('onclick')),
+    isClickable: target.tagName === 'a' || target.tagName === 'button' || target.getAttribute('role') === 'button' || target.hasAttribute('onclick'),
     tailwindRadius: tailwindRadius,
     tailwindClasses: tailwindClasses
   };
