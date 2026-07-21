@@ -144,71 +144,75 @@ function switchTab(tabName) {
   }
 }
 
-function setContainerContent(id, text) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = text;
-}
+let currentSelectedData = null;
 
-// Render Build Tab Cards Reactively (0ms local synthesis)
-function updateBuildTab(data) {
-  const elem = data || activeElementData || window.currentInspectedElement || currentInspectData;
-  console.log("Rendering Build Tab with element:", elem);
+function renderBuildTabUI(data) {
+  const elem = data || currentSelectedData || activeElementData || window.currentInspectedElement || currentInspectData;
+  if (!elem) return;
+  currentSelectedData = elem;
+  console.log('[Sidepanel] Rendering Build Tab UI:', elem);
 
   const buildEmpty = document.getElementById('build-empty');
   const buildResults = document.getElementById('build-results');
   const targetSelect = document.getElementById('prompt-target-select');
   const targetPlatform = targetSelect ? targetSelect.value : 'v0_cursor';
 
-  const fallbackText = "// Click an element on the web page to generate code.";
-
-  if (!elem) {
-    if (buildEmpty) buildEmpty.classList.remove('hidden');
-    if (buildResults) buildResults.classList.add('hidden');
-    setContainerContent('prompt-preview-code', fallbackText);
-    setContainerContent('prompt-output', fallbackText);
-    setContainerContent('react-snippet-code', fallbackText);
-    setContainerContent('react-code-output', fallbackText);
-    return;
-  }
-
   if (buildEmpty) buildEmpty.classList.add('hidden');
   if (buildResults) buildResults.classList.remove('hidden');
 
-  try {
-    let promptText = '';
-    let reactCode = '';
+  let generatedPrompt = '';
+  let generatedCode = '';
 
+  try {
     if (window.promptSynthesizer && typeof window.promptSynthesizer.generateAIPrompt === 'function') {
-      promptText = window.promptSynthesizer.generateAIPrompt(elem, targetPlatform);
+      generatedPrompt = window.promptSynthesizer.generateAIPrompt(elem, targetPlatform);
     } else if (typeof generateAIPrompt === 'function') {
-      promptText = generateAIPrompt(elem, targetPlatform);
+      generatedPrompt = generateAIPrompt(elem, targetPlatform);
     }
 
     if (window.promptSynthesizer && typeof window.promptSynthesizer.generateReactSnippet === 'function') {
-      reactCode = window.promptSynthesizer.generateReactSnippet(elem);
+      generatedCode = window.promptSynthesizer.generateReactSnippet(elem);
     } else if (window.promptSynthesizer && typeof window.promptSynthesizer.generateReactComponent === 'function') {
-      reactCode = window.promptSynthesizer.generateReactComponent(elem);
+      generatedCode = window.promptSynthesizer.generateReactComponent(elem);
     } else if (typeof generateReactComponent === 'function') {
-      reactCode = generateReactComponent(elem);
+      generatedCode = generateReactComponent(elem);
     }
-
-    setContainerContent('prompt-preview-code', promptText || '// No prompt generated.');
-    setContainerContent('prompt-output', promptText || '// No prompt generated.');
-    setContainerContent('react-snippet-code', reactCode || '// No React code generated.');
-    setContainerContent('react-code-output', reactCode || '// No React code generated.');
   } catch (err) {
     console.error('[UI Detective Build Error]:', err);
-    const errPrompt = `// Error generating prompt: ${err.message}`;
-    const errCode = `// Error generating React code: ${err.message}`;
-    setContainerContent('prompt-preview-code', errPrompt);
-    setContainerContent('prompt-output', errPrompt);
-    setContainerContent('react-snippet-code', errCode);
-    setContainerContent('react-code-output', errCode);
+    generatedPrompt = `// Error generating prompt: ${err.message}`;
+    generatedCode = `// Error generating React code: ${err.message}`;
+  }
+
+  const promptEl = document.getElementById('prompt-output') || document.getElementById('prompt-preview-code') || document.querySelector('.prompt-container');
+  const codeEl = document.getElementById('react-code-output') || document.getElementById('react-snippet-code') || document.querySelector('.code-container');
+
+  if (promptEl) {
+    if (promptEl.tagName === 'TEXTAREA' || promptEl.tagName === 'INPUT') {
+      promptEl.value = generatedPrompt || '// No prompt generated.';
+    } else {
+      promptEl.textContent = generatedPrompt || '// No prompt generated.';
+    }
+  }
+
+  if (codeEl) {
+    if (codeEl.tagName === 'TEXTAREA' || codeEl.tagName === 'INPUT') {
+      codeEl.value = generatedCode || '// No React code generated.';
+    } else {
+      codeEl.textContent = generatedCode || '// No React code generated.';
+    }
   }
 }
 
+function updateBuildTabUI(data) {
+  renderBuildTabUI(data);
+}
+
+function updateBuildTab(data) {
+  renderBuildTabUI(data);
+}
+
 function renderBuildTab(telemetry) {
-  updateBuildTab(telemetry);
+  renderBuildTabUI(telemetry);
 }
 
 // Event Listeners Setup
@@ -221,7 +225,7 @@ function setupEventListeners() {
 
   const tabInspectBtn = document.getElementById('tab-inspect-btn');
   const tabUnderstandBtn = document.getElementById('tab-understand-btn');
-  const tabBuildBtn = document.getElementById('tab-build-btn');
+  const tabBuildBtn = document.getElementById('tab-build-btn') || document.getElementById('tab-build');
 
   const analyzeBtn = document.getElementById('ai-analyze-btn');
   const recreateBtn = document.getElementById('ai-recreate-btn');
@@ -243,12 +247,22 @@ function setupEventListeners() {
   // Tabs Navigation Listeners
   if (tabInspectBtn) tabInspectBtn.addEventListener('click', () => switchTab('inspect'));
   if (tabUnderstandBtn) tabUnderstandBtn.addEventListener('click', () => switchTab('understand'));
-  if (tabBuildBtn) tabBuildBtn.addEventListener('click', () => switchTab('build'));
+  if (tabBuildBtn) {
+    tabBuildBtn.addEventListener('click', () => {
+      switchTab('build');
+      chrome.storage.local.get(['selectedElement', 'activeInspectedElement'], (result) => {
+        const val = result.selectedElement || result.activeInspectedElement || currentSelectedData;
+        if (val) {
+          renderBuildTabUI(val);
+        }
+      });
+    });
+  }
 
   // Build Tab Engine Selector
   if (promptTargetSelect) {
     promptTargetSelect.addEventListener('change', () => {
-      updateBuildTab(activeElementData || window.currentInspectedElement || currentInspectData);
+      renderBuildTabUI(currentSelectedData || activeElementData || window.currentInspectedElement || currentInspectData);
     });
   }
 
