@@ -300,12 +300,24 @@ function cssToTailwind(style, rect) {
 
 function getEffectiveBackgroundColor(el) {
   let current = el;
-  while (current && current !== document.body && current !== document.documentElement) {
+  while (current && current.nodeType === Node.ELEMENT_NODE) {
     const bg = window.getComputedStyle(current).backgroundColor;
     if (bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)') {
-      return bg;
+      const match = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+      if (match) {
+        const alpha = match[4] !== undefined ? parseFloat(match[4]) : 1;
+        if (alpha > 0) return bg;
+      }
     }
     current = current.parentElement;
+  }
+  if (document.body) {
+    const bodyBg = window.getComputedStyle(document.body).backgroundColor;
+    if (bodyBg && bodyBg !== 'transparent' && bodyBg !== 'rgba(0, 0, 0, 0)') return bodyBg;
+  }
+  if (document.documentElement) {
+    const docBg = window.getComputedStyle(document.documentElement).backgroundColor;
+    if (docBg && docBg !== 'transparent' && docBg !== 'rgba(0, 0, 0, 0)') return docBg;
   }
   return 'rgb(255, 255, 255)';
 }
@@ -335,6 +347,51 @@ function handleMouseMove(e) {
   const effectiveBgColor = getEffectiveBackgroundColor(target);
   const textColorHex = rgbToHex(style.color)?.hex || style.color;
   const bgColorHex = rgbToHex(effectiveBgColor)?.hex || effectiveBgColor;
+
+  // 1. Contrast Ratio Calculation
+  let contrastRatioStr = '-';
+  const getLinear = c => { const s = c / 255; return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); };
+  const fgMatch = style.color ? style.color.match(/\d+/g) : null;
+  const bgMatch = effectiveBgColor ? effectiveBgColor.match(/\d+/g) : null;
+  if (fgMatch && bgMatch && fgMatch.length >= 3 && bgMatch.length >= 3) {
+    const l1 = 0.2126 * getLinear(parseInt(fgMatch[0])) + 0.7152 * getLinear(parseInt(fgMatch[1])) + 0.0722 * getLinear(parseInt(fgMatch[2]));
+    const l2 = 0.2126 * getLinear(parseInt(bgMatch[0])) + 0.7152 * getLinear(parseInt(bgMatch[1])) + 0.0722 * getLinear(parseInt(bgMatch[2]));
+    const ratio = Math.round(((Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)) * 10) / 10;
+    if (ratio >= 7.0) contrastRatioStr = `${ratio}:1 (AAA ✅)`;
+    else if (ratio >= 4.5) contrastRatioStr = `${ratio}:1 (AA ✅)`;
+    else contrastRatioStr = `${ratio}:1 (Fail ❌)`;
+  }
+
+  // 2. Touch Target Audit
+  const isInteractive = ['button', 'a', 'input', 'select', 'textarea'].includes(target.tagName.toLowerCase()) ||
+    target.getAttribute('role') === 'button' || target.getAttribute('role') === 'link' || !!target.onclick || target.hasAttribute('onclick');
+  const w = Math.round(rect.width);
+  const h = Math.round(rect.height);
+  let touchTargetStr = 'N/A';
+  if (isInteractive) {
+    if (w >= 24 && h >= 24) touchTargetStr = `Pass (${w}×${h}px ${w >= 44 && h >= 44 ? '✅' : '⚠️'})`;
+    else touchTargetStr = `Small Target (${w}×${h}px ❌)`;
+  }
+
+  // 3. Screen Reader Audit
+  const hasA11y = !!(target.getAttribute('aria-label') || target.getAttribute('aria-labelledby') || target.getAttribute('title') || target.getAttribute('alt'));
+  let screenReaderStr = 'N/A';
+  if (isInteractive || target.tagName.toLowerCase() === 'img') {
+    screenReaderStr = (hasA11y || !!(target.textContent && target.textContent.trim())) ? 'Present ✅' : 'Missing ⚠️';
+  }
+
+  // 4. Responsive Strategy Detection
+  let responsiveStrategyStr = 'Fixed Width';
+  if (style.flexWrap === 'wrap' || style.display === 'flex' || style.display === 'inline-flex') {
+    responsiveStrategyStr = 'Fluid / Flex';
+  } else if (style.gridTemplateColumns && style.gridTemplateColumns.includes('repeat')) {
+    responsiveStrategyStr = 'Auto Layout';
+  } else {
+    const styleAttr = target.getAttribute('style') || '';
+    if (styleAttr.includes('%') || styleAttr.includes('vw') || styleAttr.includes('rem')) {
+      responsiveStrategyStr = 'Fluid Width';
+    }
+  }
 
   const inspectData = {
     tagName: target.tagName.toLowerCase(),
@@ -381,7 +438,11 @@ function handleMouseMove(e) {
     styleAttr: target.getAttribute('style') || '',
     hasText: !!(target.textContent && target.textContent.trim()),
     hasOnClick: !!(target.onclick || target.hasAttribute('onclick')),
-    isClickable: target.tagName === 'a' || target.tagName === 'button' || target.getAttribute('role') === 'button' || target.hasAttribute('onclick'),
+    isClickable: isInteractive,
+    contrastRatio: contrastRatioStr,
+    touchTarget: touchTargetStr,
+    screenReader: screenReaderStr,
+    responsiveStrategy: responsiveStrategyStr,
     tailwindRadius: tailwindRadius,
     tailwindClasses: tailwindClasses
   };

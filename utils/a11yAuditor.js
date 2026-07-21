@@ -32,13 +32,8 @@ export function calculateContrastRatio(fgStr, bgStr) {
   let fgRgb = parseRgb(fgStr);
   let bgRgb = parseRgb(bgStr);
 
-  // Fallback default background if transparent
-  if (!bgRgb) {
-    bgRgb = { r: 255, g: 255, b: 255, a: 1 }; // default to white
-  }
-  if (!fgRgb) {
-    fgRgb = { r: 0, g: 0, b: 0, a: 1 }; // default to black
-  }
+  if (!bgRgb) bgRgb = { r: 255, g: 255, b: 255, a: 1 };
+  if (!fgRgb) fgRgb = { r: 0, g: 0, b: 0, a: 1 };
 
   const l1 = getRelativeLuminance(fgRgb.r, fgRgb.g, fgRgb.b);
   const l2 = getRelativeLuminance(bgRgb.r, bgRgb.g, bgRgb.b);
@@ -53,13 +48,13 @@ export function calculateContrastRatio(fgStr, bgStr) {
 
   if (rounded >= 7.0) {
     level = 'AAA';
-    badge = `${rounded}:1 (WCAG AAA ✅)`;
+    badge = `${rounded}:1 (AAA ✅)`;
   } else if (rounded >= 4.5) {
     level = 'AA';
-    badge = `${rounded}:1 (WCAG AA ✅)`;
+    badge = `${rounded}:1 (AA ✅)`;
   } else {
     level = 'Fail';
-    badge = `${rounded}:1 (WCAG Fail ❌)`;
+    badge = `${rounded}:1 (Fail ❌)`;
   }
 
   return { ratio: rounded, level, badge };
@@ -78,64 +73,54 @@ export function auditTouchTarget(data) {
   const height = parseFloat(data.height) || 0;
 
   if (!isInteractive) {
-    return { isInteractive: false, status: 'N/A (Non-interactive)' };
+    return { isInteractive: false, status: 'N/A' };
   }
 
-  if (width >= 44 && height >= 44) {
-    return { isInteractive: true, status: `${width}×${height}px (Optimal ✅)` };
-  } else if (width >= 24 && height >= 24) {
-    return { isInteractive: true, status: `${width}×${height}px (Acceptable ⚠️)` };
+  if (width >= 24 && height >= 24) {
+    if (width >= 44 && height >= 44) {
+      return { isInteractive: true, status: `Pass (${width}×${height}px ✅)` };
+    }
+    return { isInteractive: true, status: `Pass (${width}×${height}px ⚠️)` };
   } else {
-    return { isInteractive: true, status: `${width}×${height}px (Small Target ❌)` };
+    return { isInteractive: true, status: `Small Target (${width}×${height}px ❌)` };
   }
 }
 
 export function auditScreenReader(data) {
-  if (data.tagName === 'img') {
-    if (data.alt !== undefined && data.alt !== null && data.alt.trim() !== '') {
-      return `Alt: "${data.alt.trim().slice(0, 20)}" ✅`;
-    } else {
-      return 'Missing Alt Text ⚠️';
+  const hasA11yAttr = !!(
+    (data.ariaLabel && data.ariaLabel.trim()) ||
+    (data.ariaLabelledBy && data.ariaLabelledBy.trim()) ||
+    (data.title && data.title.trim()) ||
+    (data.alt !== undefined && data.alt !== null && data.alt.trim() !== '')
+  );
+
+  const isMediaOrInteractive =
+    ['button', 'a', 'input', 'select', 'textarea', 'img'].includes(data.tagName) ||
+    data.role === 'button' ||
+    data.role === 'link' ||
+    data.isClickable;
+
+  if (isMediaOrInteractive) {
+    if (hasA11yAttr || data.hasText) {
+      return 'Present ✅';
     }
+    return 'Missing ⚠️';
   }
 
-  if (data.ariaLabel) {
-    return `Aria: "${data.ariaLabel.slice(0, 20)}" ✅`;
-  }
-
-  if (data.ariaLabelledBy) {
-    return 'Aria-LabelledBy ✅';
-  }
-
-  if (data.role) {
-    return `Role: ${data.role} ✅`;
-  }
-
-  const interactiveTags = ['button', 'a', 'input', 'select', 'textarea'];
-  if (interactiveTags.includes(data.tagName) || data.isClickable) {
-    if (data.hasText) {
-      return 'Visible Label ✅';
-    }
-    return 'Missing Aria Label ⚠️';
-  }
-
-  return 'Standard DOM Node';
+  return 'N/A';
 }
 
 export function detectResponsiveness(data) {
-  if (data.flexWrap === 'wrap') {
-    return 'Fluid (Flex Wrap)';
+  if (data.flexWrap === 'wrap' || data.display === 'flex' || data.display === 'inline-flex') {
+    return 'Fluid / Flex';
   }
-  if (data.gridTemplateColumns && data.gridTemplateColumns.includes('repeat')) {
-    return 'Fluid (Grid Auto-fit)';
+  if (data.gridTemplateColumns && (data.gridTemplateColumns.includes('repeat') || data.display === 'grid')) {
+    return 'Auto Layout';
   }
   if (data.styleAttr && (data.styleAttr.includes('%') || data.styleAttr.includes('vw') || data.styleAttr.includes('rem'))) {
-    return 'Fluid Width (%)';
+    return 'Fluid Width';
   }
-  if (data.display === 'flex' || data.display === 'inline-flex' || data.display === 'grid') {
-    return `Responsive ${data.display.toUpperCase()}`;
-  }
-  return `Fixed Width (${data.width || 'px'})`;
+  return 'Fixed Width';
 }
 
 export function runFullA11yAudit(data) {
@@ -148,7 +133,11 @@ export function runFullA11yAudit(data) {
     contrast,
     touch,
     a11y,
-    responsive
+    responsive,
+    contrastRatio: contrast.badge,
+    touchTarget: touch.status,
+    screenReader: a11y,
+    responsiveStrategy: responsive
   };
 }
 

@@ -555,12 +555,22 @@ chrome.runtime.onMessage.addListener((message) => {
     const readerValEl = document.getElementById('a11y-reader-val');
     const responsiveValEl = document.getElementById('a11y-responsive-val');
 
-    if (window.a11yAuditor && typeof window.a11yAuditor.runFullA11yAudit === 'function') {
+    let contrastRatio = d.contrastRatio;
+    let touchTarget = d.touchTarget;
+    let screenReader = d.screenReader;
+    let responsiveStrategy = d.responsiveStrategy;
+
+    if ((!contrastRatio || contrastRatio === '-') && window.a11yAuditor && typeof window.a11yAuditor.runFullA11yAudit === 'function') {
       const audit = window.a11yAuditor.runFullA11yAudit(d);
-      if (contrastValEl) contrastValEl.textContent = audit.contrast.badge || '-';
-      if (targetValEl) targetValEl.textContent = audit.touch.status || '-';
-      if (readerValEl) readerValEl.textContent = audit.a11y || '-';
-      if (responsiveValEl) responsiveValEl.textContent = audit.responsive || '-';
+      contrastRatio = audit.contrastRatio;
+      touchTarget = audit.touchTarget;
+      screenReader = audit.screenReader;
+      responsiveStrategy = audit.responsiveStrategy;
     }
+
+    if (contrastValEl) contrastValEl.textContent = contrastRatio || '-';
+    if (targetValEl) targetValEl.textContent = touchTarget || '-';
+    if (readerValEl) readerValEl.textContent = screenReader || '-';
+    if (responsiveValEl) responsiveValEl.textContent = responsiveStrategy || '-';
   }
 });
