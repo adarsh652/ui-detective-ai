@@ -322,6 +322,44 @@ function getEffectiveBackgroundColor(el) {
   return 'rgb(255, 255, 255)';
 }
 
+function getCleanVisibleText(element) {
+  if (!element) return '';
+  try {
+    const clone = element.cloneNode(true);
+    const hiddenSelectors = 'script, style, noscript, template, svg, iframe, [aria-hidden="true"]';
+    clone.querySelectorAll(hiddenSelectors).forEach(node => node.remove());
+    const rawText = clone.innerText || clone.textContent || '';
+    return rawText.replace(/\s+/g, ' ').trim();
+  } catch (err) {
+    return (element.textContent || '').replace(/\s+/g, ' ').trim();
+  }
+}
+
+function resolveInspectTarget(rawTarget) {
+  if (!rawTarget) return null;
+  let target = rawTarget;
+
+  const rootMetaTags = ['HTML', 'BODY', 'HEAD', 'SCRIPT', 'STYLE', 'SVG', 'NOSCRIPT', 'IFRAME'];
+  if (rootMetaTags.includes(target.tagName.toUpperCase())) {
+    const visualClosest = target.closest('section, article, div, button, a, nav, header, footer, main, form, p, h1, h2, h3, h4, h5, h6, input, span');
+    if (visualClosest && visualClosest.tagName.toUpperCase() !== 'HTML' && visualClosest.tagName.toUpperCase() !== 'BODY') {
+      target = visualClosest;
+    }
+  }
+
+  const rect = target.getBoundingClientRect();
+  const isFullPage = Math.abs(rect.width - window.innerWidth) <= 5 && Math.abs(rect.height - window.innerHeight) <= 5;
+  if (isFullPage && target.firstElementChild) {
+    const child = target.firstElementChild;
+    const childRect = child.getBoundingClientRect();
+    if (childRect.width > 0 && childRect.height > 0) {
+      target = child;
+    }
+  }
+
+  return target;
+}
+
 function extractElementMetrics(target) {
   const rect = target.getBoundingClientRect();
   const style = window.getComputedStyle(target);
@@ -361,10 +399,11 @@ function extractElementMetrics(target) {
   }
 
   // 3. Screen Reader Audit
+  const cleanText = getCleanVisibleText(target);
   const hasA11y = !!(target.getAttribute('aria-label') || target.getAttribute('aria-labelledby') || target.getAttribute('title') || target.getAttribute('alt'));
   let screenReaderStr = 'N/A';
   if (isInteractive || target.tagName.toLowerCase() === 'img') {
-    screenReaderStr = (hasA11y || !!(target.textContent && target.textContent.trim())) ? 'Present ✅' : 'Missing ⚠️';
+    screenReaderStr = (hasA11y || !!cleanText) ? 'Present ✅' : 'Missing ⚠️';
   }
 
   // 4. Responsive Strategy Detection
@@ -384,7 +423,7 @@ function extractElementMetrics(target) {
     tagName: target.tagName.toLowerCase(),
     className: target.className || '',
     classList: Array.from(target.classList || []),
-    textContent: (target.textContent || '').trim(),
+    textContent: cleanText,
     width: `${Math.round(rect.width)}px`,
     height: `${Math.round(rect.height)}px`,
     fontFamily: style.fontFamily.replace(/"/g, "'"),
@@ -426,7 +465,7 @@ function extractElementMetrics(target) {
     ariaLabelledBy: target.getAttribute('aria-labelledby'),
     alt: target.getAttribute('alt'),
     styleAttr: target.getAttribute('style') || '',
-    hasText: !!(target.textContent && target.textContent.trim()),
+    hasText: !!cleanText,
     hasOnClick: !!(target.onclick || target.hasAttribute('onclick')),
     isClickable: isInteractive,
     contrastRatio: contrastRatioStr,
@@ -440,7 +479,7 @@ function extractElementMetrics(target) {
 
 function handleMouseMove(e) {
   if (!isInspecting) return;
-  const target = e.target;
+  const target = resolveInspectTarget(e.target);
   if (!target || target === overlayEl || target.id === 'ui-detective-overlay') return;
 
   const rect = target.getBoundingClientRect();
@@ -465,7 +504,7 @@ function handleMouseMove(e) {
 
 function handleClick(e) {
   if (!isInspecting) return;
-  const target = e.target;
+  const target = resolveInspectTarget(e.target);
   if (!target || target === overlayEl || target.id === 'ui-detective-overlay') return;
 
   e.preventDefault();
