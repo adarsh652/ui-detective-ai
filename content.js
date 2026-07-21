@@ -487,9 +487,9 @@ function applyLockedOverlayStyle() {
     if (!badge) {
       badge = document.createElement('span');
       badge.className = 'locked-badge';
-      badge.textContent = '🔒 Locked';
       overlayEl.appendChild(badge);
     }
+    badge.textContent = '🔒 Locked (Click to Unlock)';
   }
 }
 
@@ -568,6 +568,37 @@ function handleDblClick(e) {
 
 function handleClick(e) {
   if (!isInspecting) return;
+
+  if (isLocked || isSelectionLocked) {
+    e.preventDefault();
+    e.stopPropagation();
+    isLocked = false;
+    isSelectionLocked = false;
+    removeLockedOverlayStyle();
+
+    const target = resolveInspectTarget(e.target);
+    if (target && target !== overlayEl && target.id !== 'ui-detective-overlay') {
+      const rect = target.getBoundingClientRect();
+      createOverlay();
+      overlayEl.style.display = 'block';
+      overlayEl.style.top = `${rect.top}px`;
+      overlayEl.style.left = `${rect.left}px`;
+      overlayEl.style.width = `${rect.width}px`;
+      overlayEl.style.height = `${rect.height}px`;
+
+      const inspectData = extractElementMetrics(target);
+      chrome.storage.local.set({ selectedElement: inspectData, activeInspectedElement: inspectData }, () => {
+        chrome.runtime.sendMessage({
+          action: 'ELEMENT_UNLOCKED',
+          type: 'ELEMENT_INSPECTED',
+          payload: inspectData,
+          data: inspectData
+        }).catch(() => {});
+      });
+    }
+    return;
+  }
+
   const target = resolveInspectTarget(e.target);
   if (!target || target === overlayEl || target.id === 'ui-detective-overlay') return;
 

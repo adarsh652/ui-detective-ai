@@ -723,7 +723,7 @@ chrome.runtime.onMessage.addListener((message) => {
   if (message.type === 'TECH_STACK_UPDATED' && message.techStack) {
     renderTechStack(message.techStack);
   } else if (
-    (message.action === 'ELEMENT_SELECTED' || message.action === 'ELEMENT_LOCKED' || message.type === 'ELEMENT_INSPECTED' || message.type === 'ELEMENT_SELECTED' || message.type === 'UI_INSPECT_DATA') &&
+    (message.action === 'ELEMENT_SELECTED' || message.action === 'ELEMENT_LOCKED' || message.action === 'ELEMENT_UNLOCKED' || message.type === 'ELEMENT_INSPECTED' || message.type === 'ELEMENT_SELECTED' || message.type === 'UI_INSPECT_DATA') &&
     (message.payload || message.data)
   ) {
     const data = message.payload || message.data;
@@ -745,6 +745,16 @@ chrome.runtime.onMessage.addListener((message) => {
         toggleBtn.classList.add('btn-primary');
         if (btnText) btnText.textContent = 'Re-inspect Element';
         else toggleBtn.textContent = 'Re-inspect Element';
+      }
+    } else if (message.action === 'ELEMENT_UNLOCKED') {
+      const toggleBtn = document.getElementById('toggle-btn');
+      const btnText = document.getElementById('btn-text');
+      if (toggleBtn) {
+        toggleBtn.dataset.inspecting = 'true';
+        toggleBtn.classList.remove('btn-primary');
+        toggleBtn.classList.add('btn-danger');
+        if (btnText) btnText.textContent = 'Stop Inspecting';
+        else toggleBtn.textContent = 'Stop Inspecting';
       }
     }
   }
