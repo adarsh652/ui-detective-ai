@@ -382,6 +382,9 @@ function extractElementMetrics(target) {
 
   return {
     tagName: target.tagName.toLowerCase(),
+    className: target.className || '',
+    classList: Array.from(target.classList || []),
+    textContent: (target.textContent || '').trim(),
     width: `${Math.round(rect.width)}px`,
     height: `${Math.round(rect.height)}px`,
     fontFamily: style.fontFamily.replace(/"/g, "'"),
@@ -449,7 +452,8 @@ function handleMouseMove(e) {
   overlayEl.style.height = `${rect.height}px`;
 
   const inspectData = extractElementMetrics(target);
-  chrome.storage.local.set({ activeInspectedElement: inspectData }, () => {
+  console.log('[ContentScript] Captured element:', inspectData);
+  chrome.storage.local.set({ selectedElement: inspectData, activeInspectedElement: inspectData }, () => {
     chrome.runtime.sendMessage({
       action: 'ELEMENT_SELECTED',
       type: 'ELEMENT_INSPECTED',
@@ -468,7 +472,8 @@ function handleClick(e) {
   e.stopPropagation();
 
   const inspectData = extractElementMetrics(target);
-  chrome.storage.local.set({ activeInspectedElement: inspectData }, () => {
+  console.log('[ContentScript] Captured element:', inspectData);
+  chrome.storage.local.set({ selectedElement: inspectData, activeInspectedElement: inspectData }, () => {
     chrome.runtime.sendMessage({
       action: 'ELEMENT_SELECTED',
       type: 'ELEMENT_INSPECTED',

@@ -79,27 +79,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Load active inspected element from chrome.storage.local
 function loadActiveElement() {
-  chrome.storage.local.get(['activeInspectedElement'], (result) => {
-    if (result.activeInspectedElement) {
-      activeElementData = result.activeInspectedElement;
-      window.currentInspectedElement = result.activeInspectedElement;
-      currentInspectData = result.activeInspectedElement;
-      updateInspectTab(result.activeInspectedElement);
-      updateBuildTab(result.activeInspectedElement);
+  chrome.storage.local.get(['selectedElement', 'activeInspectedElement'], (result) => {
+    const data = result.selectedElement || result.activeInspectedElement;
+    if (data) {
+      console.log('[Sidepanel] Hydrating initial element:', data);
+      activeElementData = data;
+      window.currentInspectedElement = data;
+      currentInspectData = data;
+      updateInspectTabUI(data);
+      updateBuildTabUI(data);
     }
   });
 }
 
 // Listen for live storage changes across tabs
 chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === 'local' && changes.activeInspectedElement) {
-    const newData = changes.activeInspectedElement.newValue;
+  if (namespace === 'local') {
+    const newData = changes.selectedElement?.newValue || changes.activeInspectedElement?.newValue;
     if (newData) {
+      console.log('[Sidepanel] Received element from storage:', newData);
       activeElementData = newData;
       window.currentInspectedElement = newData;
       currentInspectData = newData;
-      updateInspectTab(newData);
-      updateBuildTab(newData);
+      updateInspectTabUI(newData);
+      updateBuildTabUI(newData);
     }
   }
 });
@@ -671,21 +674,30 @@ function renderInspectView(d) {
   updateInspectTab(d);
 }
 
+function updateInspectTabUI(d) {
+  updateInspectTab(d);
+}
+
+function updateBuildTabUI(data) {
+  updateBuildTab(data);
+}
+
 // Listen for incoming telemetry from content.js (Centralized Global State Sync)
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === 'TECH_STACK_UPDATED' && message.techStack) {
     renderTechStack(message.techStack);
   } else if (
-    (message.type === 'ELEMENT_INSPECTED' || message.type === 'ELEMENT_SELECTED' || message.type === 'UI_INSPECT_DATA') &&
+    (message.action === 'ELEMENT_SELECTED' || message.type === 'ELEMENT_INSPECTED' || message.type === 'ELEMENT_SELECTED' || message.type === 'UI_INSPECT_DATA') &&
     (message.payload || message.data)
   ) {
     const data = message.payload || message.data;
+    console.log('[Sidepanel] Received element from runtime message:', data);
     activeElementData = data;
     window.currentInspectedElement = data;
     currentInspectData = data;
 
     // Instantly sync both Inspect and Build tab views
-    updateInspectTab(activeElementData);
-    updateBuildTab(activeElementData);
+    updateInspectTabUI(activeElementData);
+    updateBuildTabUI(activeElementData);
   }
 });
