@@ -257,6 +257,12 @@ body {
   border-bottom: 1px solid var(--card-border);
 }
 
+.element-tag-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .tag-badge {
   background-color: #3b82f6;
   color: white;
@@ -266,6 +272,16 @@ body {
   padding: 3px 8px;
   border-radius: 4px;
   text-transform: lowercase;
+}
+
+.dimensions-badge {
+  background-color: #334155;
+  color: #cbd5e1;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
 .tailwind-badge {
@@ -324,23 +340,42 @@ body {
   line-height: 1.6;
 }
 
-.metrics-grid {
+.telemetry-sections {
   display: flex;
   flex-direction: column;
   gap: 12px;
   margin-bottom: 16px;
 }
 
+.telemetry-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background-color: rgba(15, 23, 42, 0.5);
+  padding: 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.group-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #818cf8;
+  margin-bottom: 2px;
+}
+
 .metric-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 10px;
 }
 
 .metric-item {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .metric-label {
@@ -474,4 +509,70 @@ body {
   border-radius: var(--radius-md);
   padding: 12px;
   border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Modal Overlay & Slide-over */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1000;
+}
+
+.modal-card {
+  background-color: var(--card-bg);
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  width: 100%;
+  max-width: 320px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5), 0 0 20px rgba(168, 85, 247, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-header h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e9d5ff;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 20px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  color: white;
+}
+
+.modal-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }

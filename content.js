@@ -322,14 +322,25 @@ function handleMouseMove(e) {
 
   const inspectData = {
     tagName: target.tagName.toLowerCase(),
+    width: `${Math.round(rect.width)}px`,
+    height: `${Math.round(rect.height)}px`,
     fontFamily: style.fontFamily.replace(/"/g, "'"),
     fontSize: style.fontSize,
     fontWeight: style.fontWeight,
+    lineHeight: style.lineHeight,
+    letterSpacing: style.letterSpacing,
     color: style.color,
     backgroundColor: style.backgroundColor,
     padding: padding,
     margin: margin,
     borderRadius: borderRadius,
+    border: `${style.borderWidth} ${style.borderStyle} ${style.borderColor}`,
+    borderWidth: style.borderWidth,
+    borderStyle: style.borderStyle,
+    borderColor: style.borderColor,
+    display: style.display,
+    flexDirection: style.flexDirection,
+    gap: style.gap,
     tailwindRadius: tailwindRadius,
     tailwindClasses: tailwindClasses
   };

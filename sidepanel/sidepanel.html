@@ -53,14 +53,19 @@
         </div>
 
         <div id="data-view" class="data-content hidden">
+          <!-- 1. Local Offline Inspector View -->
           <div class="element-header">
-            <span class="tag-badge" id="tag-name">div</span>
+            <div class="element-tag-group">
+              <span class="tag-badge" id="tag-name">div</span>
+              <span class="dimensions-badge" id="dimensions-val">0px × 0px</span>
+            </div>
             <span class="tailwind-badge" id="tailwind-radius">rounded-none</span>
           </div>
 
+          <!-- Extracted Tailwind Tokens (Local offline mapping) -->
           <div class="snippet-box">
             <div class="snippet-header">
-              <span class="metric-label">Tailwind Classes</span>
+              <span class="metric-label">Extracted Tailwind Tokens</span>
               <button id="copy-tailwind-btn" class="btn-copy">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
@@ -72,56 +77,102 @@
             <div id="tailwind-snippet" class="snippet-code">font-normal text-sm p-4</div>
           </div>
 
-          <div class="metrics-grid">
-            <div class="metric-item">
-              <span class="metric-label">Font Family</span>
-              <span class="metric-value font-mono" id="font-family">-</span>
-            </div>
-
-            <div class="metric-row">
+          <!-- Instant Computed Telemetry -->
+          <div class="telemetry-sections">
+            <!-- Typography -->
+            <div class="telemetry-group">
+              <span class="group-title">Typography</span>
               <div class="metric-item">
-                <span class="metric-label">Font Size</span>
-                <span class="metric-value" id="font-size">-</span>
+                <span class="metric-label">Font Family</span>
+                <span class="metric-value font-mono" id="font-family">-</span>
+              </div>
+              <div class="metric-row">
+                <div class="metric-item">
+                  <span class="metric-label">Font Size</span>
+                  <span class="metric-value" id="font-size">-</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Font Weight</span>
+                  <span class="metric-value" id="font-weight">-</span>
+                </div>
+              </div>
+              <div class="metric-row">
+                <div class="metric-item">
+                  <span class="metric-label">Line Height</span>
+                  <span class="metric-value font-mono" id="line-height-val">-</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Letter Spacing</span>
+                  <span class="metric-value font-mono" id="letter-spacing-val">-</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Colors -->
+            <div class="telemetry-group">
+              <span class="group-title">Colors</span>
+              <div class="metric-item">
+                <span class="metric-label">Text Color</span>
+                <div class="color-row">
+                  <span class="color-swatch" id="color-swatch"></span>
+                  <span class="metric-value font-mono" id="color-val">-</span>
+                </div>
               </div>
               <div class="metric-item">
-                <span class="metric-label">Font Weight</span>
-                <span class="metric-value" id="font-weight">-</span>
+                <span class="metric-label">Background Color</span>
+                <div class="color-row">
+                  <span class="color-swatch" id="bg-swatch"></span>
+                  <span class="metric-value font-mono" id="bg-val">-</span>
+                </div>
               </div>
             </div>
 
-            <div class="metric-item">
-              <span class="metric-label">Text Color</span>
-              <div class="color-row">
-                <span class="color-swatch" id="color-swatch"></span>
-                <span class="metric-value font-mono" id="color-val">-</span>
+            <!-- Box Model -->
+            <div class="telemetry-group">
+              <span class="group-title">Box Model & Borders</span>
+              <div class="metric-row">
+                <div class="metric-item">
+                  <span class="metric-label">Padding</span>
+                  <span class="metric-value font-mono" id="padding-val">-</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Margin</span>
+                  <span class="metric-value font-mono" id="margin-val">-</span>
+                </div>
+              </div>
+              <div class="metric-row">
+                <div class="metric-item">
+                  <span class="metric-label">Border Radius</span>
+                  <span class="metric-value font-mono" id="border-radius-val">-</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Border</span>
+                  <span class="metric-value font-mono" id="border-val">-</span>
+                </div>
               </div>
             </div>
 
-            <div class="metric-item">
-              <span class="metric-label">Background Color</span>
-              <div class="color-row">
-                <span class="color-swatch" id="bg-swatch"></span>
-                <span class="metric-value font-mono" id="bg-val">-</span>
+            <!-- Layout Details -->
+            <div class="telemetry-group">
+              <span class="group-title">Layout & Position</span>
+              <div class="metric-row">
+                <div class="metric-item">
+                  <span class="metric-label">Display</span>
+                  <span class="metric-value font-mono" id="display-val">-</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Flex Direction</span>
+                  <span class="metric-value font-mono" id="flex-direction-val">-</span>
+                </div>
               </div>
-            </div>
-
-            <div class="metric-row">
               <div class="metric-item">
-                <span class="metric-label">Padding</span>
-                <span class="metric-value font-mono" id="padding-val">-</span>
+                <span class="metric-label">Gap</span>
+                <span class="metric-value font-mono" id="gap-val">-</span>
               </div>
-              <div class="metric-item">
-                <span class="metric-label">Margin</span>
-                <span class="metric-value font-mono" id="margin-val">-</span>
-              </div>
-            </div>
-
-            <div class="metric-item">
-              <span class="metric-label">Border Radius</span>
-              <span class="metric-value font-mono" id="border-radius-val">-</span>
             </div>
           </div>
 
+          <!-- 2. On-Demand AI Subsystem Triggers -->
           <div class="ai-actions">
             <button id="ai-analyze-btn" class="btn btn-ai-gradient">
               <span>✨ Analyze Design (AI)</span>
@@ -133,6 +184,7 @@
         </div>
       </div>
 
+      <!-- AI Results Section -->
       <div id="ai-results-card" class="card ai-card hidden">
         <div class="ai-card-header">
           <div class="ai-title-row">
@@ -156,8 +208,24 @@
         <div id="ai-output-text" class="ai-output"></div>
       </div>
     </main>
+
+    <!-- AI Auth / Key Modal Overlay -->
+    <div id="api-key-modal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>Unlock AI Subsystem</h3>
+          <button id="modal-close-btn" class="modal-close">×</button>
+        </div>
+        <p class="modal-desc">Enter your Gemini API Key to unlock AI Design Audits and React Component Generation.</p>
+        <div class="modal-body">
+          <input type="password" id="modal-api-key-input" class="input-text" placeholder="Paste Gemini API Key..." />
+          <button id="modal-save-key-btn" class="btn btn-primary">Save & Unlock AI</button>
+        </div>
+      </div>
+    </div>
   </div>
 
+  <script src="../utils/tailwindMapper.js"></script>
   <script src="sidepanel.js"></script>
 </body>
 </html>

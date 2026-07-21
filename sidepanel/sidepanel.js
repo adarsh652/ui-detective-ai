@@ -1,5 +1,6 @@
 let currentInspectData = null;
 let currentTailwindClasses = '';
+let pendingAIAction = null;
 
 // Helper: Get active web tab reliably across sidepanel and main window
 async function getActiveTab() {
@@ -65,6 +66,11 @@ function setupEventListeners() {
   const copyOutputBtn = document.getElementById('copy-ai-btn') || document.getElementById('copy-output-btn');
   const copyTailwindBtn = document.getElementById('copy-tailwind-btn');
 
+  const apiKeyModal = document.getElementById('api-key-modal');
+  const modalCloseBtn = document.getElementById('modal-close-btn');
+  const modalSaveKeyBtn = document.getElementById('modal-save-key-btn');
+  const modalApiKeyInput = document.getElementById('modal-api-key-input');
+
   if (saveKeyBtn) {
     saveKeyBtn.addEventListener('click', () => {
       const input = document.getElementById('api-key-input');
@@ -75,6 +81,31 @@ function setupEventListeners() {
       }
       chrome.storage.local.set({ geminiApiKey: key }, () => {
         showStatus('API Key saved!', 'success');
+      });
+    });
+  }
+
+  if (modalCloseBtn) {
+    modalCloseBtn.addEventListener('click', () => {
+      if (apiKeyModal) apiKeyModal.classList.add('hidden');
+      pendingAIAction = null;
+    });
+  }
+
+  if (modalSaveKeyBtn) {
+    modalSaveKeyBtn.addEventListener('click', () => {
+      const key = modalApiKeyInput ? modalApiKeyInput.value.trim() : '';
+      if (!key) return;
+      chrome.storage.local.set({ geminiApiKey: key }, () => {
+        const input = document.getElementById('api-key-input');
+        if (input) input.value = key;
+        showStatus('API Key saved!', 'success');
+        if (apiKeyModal) apiKeyModal.classList.add('hidden');
+        if (pendingAIAction) {
+          const action = pendingAIAction;
+          pendingAIAction = null;
+          handleAIAction(action);
+        }
       });
     });
   }
@@ -112,7 +143,7 @@ function setupEventListeners() {
             renderTechStack(response.techStack);
           }
         } catch (err) {
-          showStatus('Cannot inspect this page (try refreshing the page or navigating to a normal website)', 'error');
+          showStatus('Cannot inspect this page (restricted or not loaded)', 'error');
         }
       }
     });
@@ -180,14 +211,16 @@ function renderTechStack(stack) {
   `).join('');
 }
 
-// Handle AI Button Clicks
+// Handle On-Demand AI Button Clicks
 async function handleAIAction(actionType) {
   const { geminiApiKey } = await chrome.storage.local.get(['geminiApiKey']);
   const inputKey = document.getElementById('api-key-input')?.value.trim();
   const apiKey = geminiApiKey || inputKey;
 
   if (!apiKey) {
-    showAIOutput('⚠️ Error: Please enter and save your Gemini API key at the top first.', true);
+    pendingAIAction = actionType;
+    const apiKeyModal = document.getElementById('api-key-modal');
+    if (apiKeyModal) apiKeyModal.classList.remove('hidden');
     return;
   }
 
@@ -230,7 +263,7 @@ Start the response directly with: "Build a React component using Tailwind CSS...
   }
 }
 
-// Dynamic Model Discovery & API Call with Native Structured JSON Generation
+// Dynamic Model Discovery & API Call with Native Structured JSON Generation (Phase 3)
 async function callGeminiAPI(apiKey, promptText) {
   let availableModels = [];
 
@@ -306,46 +339,6 @@ async function callGeminiAPI(apiKey, promptText) {
   throw lastError || new Error('Unable to generate content with available Gemini models.');
 }
 
-// Helper function to aggressively purge residual reasoning notes from LLM output
-function cleanThinkingNotes(text) {
-  // Step 1: If explicit <OUTPUT> tags exist, try to extract inside them first
-  const outputMatch = text.match(/<OUTPUT>([\s\S]*?)(?:<\/OUTPUT>|$)/i);
-  let cleaned = (outputMatch && outputMatch[1]) ? outputMatch[1] : text;
-
-  // Step 2: Search bottom-up for the actual final prompt block
-  const lines = cleaned.split('\n');
-  let targetIndex = -1;
-
-  for (let i = lines.length - 1; i >= 0; i--) {
-    const lineTrimmed = lines[i].trim().replace(/^['"`*#\s]+/, '');
-    const lower = lineTrimmed.toLowerCase();
-
-    if (lower.startsWith('build a react component') || lower.startsWith('build a ')) {
-      // Exclude draft note lines like "Target Format: starting with..." or "? Yes"
-      if (!lower.includes('starting with') &&
-        !lower.includes('target format') &&
-        !lower.includes('? yes') &&
-        !lower.includes('(check)')) {
-        targetIndex = i;
-        break;
-      }
-    }
-  }
-
-  if (targetIndex !== -1) {
-    return lines.slice(targetIndex).join('\n').trim();
-  }
-
-  // Step 3: Fallback cleaning for Design Review bullet points
-  return cleaned
-    .replace(/<\/?OUTPUT>/gi, '')
-    // Remove typical reasoning/drafting headers and bullet lists
-    .replace(/^(\s*\*?\s*(Role|Input|Goal|Target Format|Tag|Typography|Text Color|Background|Padding|Border Radius|Converted Tailwind|Constraint|Step \d|Drafting|Revised|Final Prompt|Self-Correction|Note on|Expanding|Double check|One last check|Final Polish)[\s\S]*?\n)+/gi, '')
-    .replace(/\*?\s*\(Self-Correction[\s\S]*?\)/gi, '')
-    .replace(/\*?\s*Drafting Section[\s\S]*?\n/gi, '')
-    .trim();
-}
-
 // Display Messages
 function showAIOutput(text, isError, isLoading = false) {
   const container = document.getElementById('ai-output-text') || document.getElementById('ai-output-content');
@@ -392,7 +385,7 @@ function showStatus(msg, type) {
   }
 }
 
-// Listen for incoming telemetry from content.js
+// Listen for incoming telemetry from content.js (Local-First Offline Rendering)
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === 'UI_INSPECT_DATA' && message.data) {
     currentInspectData = message.data;
@@ -403,37 +396,70 @@ chrome.runtime.onMessage.addListener((message) => {
     if (emptyView) emptyView.classList.add('hidden');
     if (dataView) dataView.classList.remove('hidden');
 
+    // 1. Tag & Dimensions
     const tagNameEl = document.getElementById('tag-name');
+    const dimensionsValEl = document.getElementById('dimensions-val');
+    const tailwindRadiusEl = document.getElementById('tailwind-radius') || document.getElementById('tw-radius');
+
+    if (tagNameEl) tagNameEl.textContent = d.tagName ? `<${d.tagName}>` : 'element';
+    if (dimensionsValEl) dimensionsValEl.textContent = (d.width && d.height) ? `${d.width} × ${d.height}` : '-';
+    if (tailwindRadiusEl) tailwindRadiusEl.textContent = d.tailwindRadius || 'rounded-none';
+
+    // 2. Extracted Tailwind Tokens (Instant Offline Generation via tailwindMapper)
+    const tailwindSnippetEl = document.getElementById('tailwind-snippet') || document.getElementById('tw-snippet');
+    let tokens = [];
+    if (window.tailwindMapper && typeof window.tailwindMapper.generateTailwindTokens === 'function') {
+      tokens = window.tailwindMapper.generateTailwindTokens(d);
+    } else {
+      tokens = d.tailwindClasses || [];
+    }
+    currentTailwindClasses = tokens.join(' ');
+    if (tailwindSnippetEl) {
+      tailwindSnippetEl.textContent = currentTailwindClasses || 'no utility classes generated';
+    }
+
+    // 3. Typography
     const fontEl = document.getElementById('font-family');
     const sizeEl = document.getElementById('font-size');
     const weightEl = document.getElementById('font-weight');
+    const lineHeightValEl = document.getElementById('line-height-val');
+    const letterSpacingValEl = document.getElementById('letter-spacing-val');
+
+    if (fontEl) fontEl.textContent = d.fontFamily || '-';
+    if (sizeEl) sizeEl.textContent = d.fontSize || '-';
+    if (weightEl) weightEl.textContent = d.fontWeight || '-';
+    if (lineHeightValEl) lineHeightValEl.textContent = d.lineHeight || '-';
+    if (letterSpacingValEl) letterSpacingValEl.textContent = d.letterSpacing || '-';
+
+    // 4. Colors
     const colorValEl = document.getElementById('color-val') || document.getElementById('text-color');
     const colorSwatchEl = document.getElementById('color-swatch');
     const bgValEl = document.getElementById('bg-val') || document.getElementById('bg-color');
     const bgSwatchEl = document.getElementById('bg-swatch');
-    const borderRadiusValEl = document.getElementById('border-radius-val') || document.getElementById('border-radius');
-    const tailwindRadiusEl = document.getElementById('tailwind-radius') || document.getElementById('tw-radius');
-    const paddingValEl = document.getElementById('padding-val');
-    const marginValEl = document.getElementById('margin-val');
-    const tailwindSnippetEl = document.getElementById('tailwind-snippet') || document.getElementById('tw-snippet');
 
-    if (tagNameEl) tagNameEl.textContent = d.tagName || 'element';
-    if (fontEl) fontEl.textContent = d.fontFamily || '-';
-    if (sizeEl) sizeEl.textContent = d.fontSize || '-';
-    if (weightEl) weightEl.textContent = d.fontWeight || '-';
     if (colorValEl) colorValEl.textContent = d.color || '-';
     if (colorSwatchEl) colorSwatchEl.style.backgroundColor = d.color || 'transparent';
     if (bgValEl) bgValEl.textContent = d.backgroundColor || '-';
     if (bgSwatchEl) bgSwatchEl.style.backgroundColor = d.backgroundColor || 'transparent';
-    if (borderRadiusValEl) borderRadiusValEl.textContent = d.borderRadius || '-';
-    if (tailwindRadiusEl) tailwindRadiusEl.textContent = d.tailwindRadius || 'rounded-none';
+
+    // 5. Box Model & Borders
+    const paddingValEl = document.getElementById('padding-val');
+    const marginValEl = document.getElementById('margin-val');
+    const borderRadiusValEl = document.getElementById('border-radius-val') || document.getElementById('border-radius');
+    const borderValEl = document.getElementById('border-val');
+
     if (paddingValEl) paddingValEl.textContent = d.padding || '-';
     if (marginValEl) marginValEl.textContent = d.margin || '-';
+    if (borderRadiusValEl) borderRadiusValEl.textContent = d.borderRadius || '-';
+    if (borderValEl) borderValEl.textContent = d.border || '-';
 
-    const classesArr = d.tailwindClasses || [];
-    currentTailwindClasses = classesArr.join(' ');
-    if (tailwindSnippetEl) {
-      tailwindSnippetEl.textContent = currentTailwindClasses || 'no utility classes generated';
-    }
+    // 6. Layout & Position
+    const displayValEl = document.getElementById('display-val');
+    const flexDirectionValEl = document.getElementById('flex-direction-val');
+    const gapValEl = document.getElementById('gap-val');
+
+    if (displayValEl) displayValEl.textContent = d.display || '-';
+    if (flexDirectionValEl) flexDirectionValEl.textContent = d.flexDirection || '-';
+    if (gapValEl) gapValEl.textContent = d.gap || '-';
   }
 });
