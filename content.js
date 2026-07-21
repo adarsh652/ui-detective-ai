@@ -477,12 +477,36 @@ function extractElementMetrics(target) {
   };
 }
 
+let isLocked = false;
 let isSelectionLocked = false;
 
+function applyLockedOverlayStyle() {
+  if (overlayEl) {
+    overlayEl.classList.add('locked-overlay');
+    let badge = overlayEl.querySelector('.locked-badge');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'locked-badge';
+      badge.textContent = '🔒 Locked';
+      overlayEl.appendChild(badge);
+    }
+  }
+}
+
+function removeLockedOverlayStyle() {
+  if (overlayEl) {
+    overlayEl.classList.remove('locked-overlay');
+    const badge = overlayEl.querySelector('.locked-badge');
+    if (badge) badge.remove();
+  }
+}
+
 function handleMouseMove(e) {
-  if (!isInspecting || isSelectionLocked) return;
+  if (!isInspecting || isLocked || isSelectionLocked) return;
   const target = resolveInspectTarget(e.target);
   if (!target || target === overlayEl || target.id === 'ui-detective-overlay') return;
+
+  removeLockedOverlayStyle();
 
   const rect = target.getBoundingClientRect();
   createOverlay();
@@ -493,7 +517,7 @@ function handleMouseMove(e) {
   overlayEl.style.height = `${rect.height}px`;
 
   const inspectData = extractElementMetrics(target);
-  console.log('[ContentScript] Captured element:', inspectData);
+  console.log('[ContentScript] Captured hover element:', inspectData);
   chrome.storage.local.set({ selectedElement: inspectData, activeInspectedElement: inspectData }, () => {
     chrome.runtime.sendMessage({
       action: 'ELEMENT_SELECTED',
@@ -504,14 +528,8 @@ function handleMouseMove(e) {
   });
 }
 
-function handleClick(e) {
-  if (!isInspecting) return;
-  const target = resolveInspectTarget(e.target);
-  if (!target || target === overlayEl || target.id === 'ui-detective-overlay') return;
-
-  e.preventDefault();
-  e.stopPropagation();
-
+function lockElement(target) {
+  isLocked = true;
   isSelectionLocked = true;
 
   const rect = target.getBoundingClientRect();
@@ -522,8 +540,10 @@ function handleClick(e) {
   overlayEl.style.width = `${rect.width}px`;
   overlayEl.style.height = `${rect.height}px`;
 
+  applyLockedOverlayStyle();
+
   const inspectData = extractElementMetrics(target);
-  console.log('[ContentScript] Element locked & captured:', inspectData);
+  console.log('[ContentScript] Element locked:', inspectData);
   chrome.storage.local.set({ selectedElement: inspectData, activeInspectedElement: inspectData }, () => {
     chrome.runtime.sendMessage({
       action: 'ELEMENT_LOCKED',
@@ -533,6 +553,28 @@ function handleClick(e) {
       isLocked: true
     }).catch(() => {});
   });
+}
+
+function handleDblClick(e) {
+  if (!isInspecting) return;
+  const target = resolveInspectTarget(e.target);
+  if (!target || target === overlayEl || target.id === 'ui-detective-overlay') return;
+
+  e.preventDefault();
+  e.stopPropagation();
+
+  lockElement(target);
+}
+
+function handleClick(e) {
+  if (!isInspecting) return;
+  const target = resolveInspectTarget(e.target);
+  if (!target || target === overlayEl || target.id === 'ui-detective-overlay') return;
+
+  e.preventDefault();
+  e.stopPropagation();
+
+  lockElement(target);
 }
 
 let latestTechStack = [];
@@ -559,14 +601,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     if (isInspecting) {
+      isLocked = false;
       isSelectionLocked = false;
+      removeLockedOverlayStyle();
       document.addEventListener('mousemove', handleMouseMove, true);
       document.addEventListener('click', handleClick, true);
+      document.addEventListener('dblclick', handleDblClick, true);
       createOverlay();
     } else {
+      isLocked = false;
       isSelectionLocked = false;
+      removeLockedOverlayStyle();
       document.removeEventListener('mousemove', handleMouseMove, true);
       document.removeEventListener('click', handleClick, true);
+      document.removeEventListener('dblclick', handleDblClick, true);
       removeOverlay();
     }
     const stack = latestTechStack.length > 0 ? latestTechStack : detectTechStack();
