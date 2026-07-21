@@ -723,7 +723,7 @@ chrome.runtime.onMessage.addListener((message) => {
   if (message.type === 'TECH_STACK_UPDATED' && message.techStack) {
     renderTechStack(message.techStack);
   } else if (
-    (message.action === 'ELEMENT_SELECTED' || message.type === 'ELEMENT_INSPECTED' || message.type === 'ELEMENT_SELECTED' || message.type === 'UI_INSPECT_DATA') &&
+    (message.action === 'ELEMENT_SELECTED' || message.action === 'ELEMENT_LOCKED' || message.type === 'ELEMENT_INSPECTED' || message.type === 'ELEMENT_SELECTED' || message.type === 'UI_INSPECT_DATA') &&
     (message.payload || message.data)
   ) {
     const data = message.payload || message.data;
@@ -735,5 +735,17 @@ chrome.runtime.onMessage.addListener((message) => {
     // Instantly sync both Inspect and Build tab views
     updateInspectTabUI(activeElementData);
     updateBuildTabUI(activeElementData);
+
+    if (message.action === 'ELEMENT_LOCKED' || message.isLocked) {
+      const toggleBtn = document.getElementById('toggle-btn');
+      const btnText = document.getElementById('btn-text');
+      if (toggleBtn) {
+        toggleBtn.dataset.inspecting = 'false';
+        toggleBtn.classList.remove('btn-danger');
+        toggleBtn.classList.add('btn-primary');
+        if (btnText) btnText.textContent = 'Re-inspect Element';
+        else toggleBtn.textContent = 'Re-inspect Element';
+      }
+    }
   }
 });

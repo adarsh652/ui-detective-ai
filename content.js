@@ -477,8 +477,10 @@ function extractElementMetrics(target) {
   };
 }
 
+let isSelectionLocked = false;
+
 function handleMouseMove(e) {
-  if (!isInspecting) return;
+  if (!isInspecting || isSelectionLocked) return;
   const target = resolveInspectTarget(e.target);
   if (!target || target === overlayEl || target.id === 'ui-detective-overlay') return;
 
@@ -510,14 +512,25 @@ function handleClick(e) {
   e.preventDefault();
   e.stopPropagation();
 
+  isSelectionLocked = true;
+
+  const rect = target.getBoundingClientRect();
+  createOverlay();
+  overlayEl.style.display = 'block';
+  overlayEl.style.top = `${rect.top}px`;
+  overlayEl.style.left = `${rect.left}px`;
+  overlayEl.style.width = `${rect.width}px`;
+  overlayEl.style.height = `${rect.height}px`;
+
   const inspectData = extractElementMetrics(target);
-  console.log('[ContentScript] Captured element:', inspectData);
+  console.log('[ContentScript] Element locked & captured:', inspectData);
   chrome.storage.local.set({ selectedElement: inspectData, activeInspectedElement: inspectData }, () => {
     chrome.runtime.sendMessage({
-      action: 'ELEMENT_SELECTED',
+      action: 'ELEMENT_LOCKED',
       type: 'ELEMENT_INSPECTED',
       payload: inspectData,
-      data: inspectData
+      data: inspectData,
+      isLocked: true
     }).catch(() => {});
   });
 }
@@ -546,10 +559,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     if (isInspecting) {
+      isSelectionLocked = false;
       document.addEventListener('mousemove', handleMouseMove, true);
       document.addEventListener('click', handleClick, true);
       createOverlay();
     } else {
+      isSelectionLocked = false;
       document.removeEventListener('mousemove', handleMouseMove, true);
       document.removeEventListener('click', handleClick, true);
       removeOverlay();
