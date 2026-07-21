@@ -146,11 +146,35 @@ function switchTab(tabName) {
 
 let currentSelectedData = null;
 
+function generateAIPrompt(data, targetPlatform = 'v0_cursor') {
+  if (window.promptSynthesizer && typeof window.promptSynthesizer.generateAIPrompt === 'function') {
+    return window.promptSynthesizer.generateAIPrompt(data, targetPlatform);
+  }
+  if (!data) return '';
+  const tag = (data.tagName || 'div').toLowerCase();
+  const classes = Array.isArray(data.tailwindClasses) ? data.tailwindClasses.join(' ') : (data.className || 'p-4 rounded-lg bg-card text-card-foreground border');
+  return `// Prompt for v0.dev / Cursor AI / ChatGPT\nBuild a production-grade React component for <${tag}>\nTailwind classes: ${classes}`;
+}
+
+function generateReactComponent(data) {
+  if (window.promptSynthesizer && typeof window.promptSynthesizer.generateReactSnippet === 'function') {
+    return window.promptSynthesizer.generateReactSnippet(data);
+  }
+  if (window.promptSynthesizer && typeof window.promptSynthesizer.generateReactComponent === 'function') {
+    return window.promptSynthesizer.generateReactComponent(data);
+  }
+  if (!data) return '';
+  const tag = (data.tagName || 'div').toLowerCase();
+  const classes = Array.isArray(data.tailwindClasses) && data.tailwindClasses.length > 0 ? data.tailwindClasses.join(' ') : (data.className || 'p-4 rounded-lg bg-card text-card-foreground border');
+  const text = (data.textContent || '').trim() || 'Component Content';
+
+  return `export default function CustomComponent() {\n  return (\n    <${tag} className="${classes}">\n      ${text}\n    </${tag}>\n  );\n}`;
+}
+
 function renderBuildTab(elementData) {
-  const elem = elementData || currentSelectedData || activeElementData || window.currentInspectedElement || currentInspectData;
-  console.log("Rendering Build Tab with element:", elem);
-  if (!elem) return;
-  currentSelectedData = elem;
+  console.log("Rendering Build Tab with element:", elementData);
+  if (!elementData) return;
+  currentSelectedData = elementData;
 
   const buildEmpty = document.getElementById('build-empty');
   const buildResults = document.getElementById('build-results');
@@ -167,42 +191,20 @@ function renderBuildTab(elementData) {
     return;
   }
 
-  const targetSelect = document.getElementById('prompt-target-select');
-  const targetPlatform = targetSelect ? targetSelect.value : 'v0_cursor';
+  const generatedPrompt = generateAIPrompt(elementData);
+  const generatedReact = generateReactComponent(elementData);
 
-  let generatedPrompt = '';
-  let generatedReact = '';
-
-  try {
-    if (window.promptSynthesizer && typeof window.promptSynthesizer.generateAIPrompt === 'function') {
-      generatedPrompt = window.promptSynthesizer.generateAIPrompt(elem, targetPlatform);
-    } else if (typeof generateAIPrompt === 'function') {
-      generatedPrompt = generateAIPrompt(elem, targetPlatform);
-    }
-
-    if (window.promptSynthesizer && typeof window.promptSynthesizer.generateReactSnippet === 'function') {
-      generatedReact = window.promptSynthesizer.generateReactSnippet(elem);
-    } else if (window.promptSynthesizer && typeof window.promptSynthesizer.generateReactComponent === 'function') {
-      generatedReact = window.promptSynthesizer.generateReactComponent(elem);
-    } else if (typeof generateReactComponent === 'function') {
-      generatedReact = generateReactComponent(elem);
-    }
-  } catch (err) {
-    console.error('[UI Detective Build Error]:', err);
-    generatedPrompt = `// Error generating prompt: ${err.message}`;
-    generatedReact = `// Error generating React code: ${err.message}`;
-  }
-
+  // Update content based on element type
   if ('value' in promptEl && (promptEl.tagName === 'TEXTAREA' || promptEl.tagName === 'INPUT')) {
-    promptEl.value = generatedPrompt || '// No prompt generated.';
+    promptEl.value = generatedPrompt;
   } else {
-    promptEl.textContent = generatedPrompt || '// No prompt generated.';
+    promptEl.textContent = generatedPrompt;
   }
 
   if ('value' in reactEl && (reactEl.tagName === 'TEXTAREA' || reactEl.tagName === 'INPUT')) {
-    reactEl.value = generatedReact || '// No React code generated.';
+    reactEl.value = generatedReact;
   } else {
-    reactEl.textContent = generatedReact || '// No React code generated.';
+    reactEl.textContent = generatedReact;
   }
 }
 
