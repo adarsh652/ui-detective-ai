@@ -35,7 +35,8 @@
       </div>
       <div class="api-key-row">
         <input type="password" id="api-key-input" class="input-text" placeholder="Paste Gemini API Key..." />
-        <button id="save-key-btn" class="btn-sm btn-secondary">Save Key</button>
+        <button id="save-key-btn" class="btn-sm btn-secondary">Save</button>
+        <button id="clear-key-btn" class="btn-sm btn-danger-ghost">Clear</button>
       </div>
       <div id="api-key-status" class="status-msg hidden">API Key Saved ✓</div>
     </div>
@@ -48,7 +49,21 @@
       </div>
     </div>
 
+    <!-- Tabbed Navigation Bar -->
+    <nav class="tabs-nav">
+      <button id="tab-inspect-btn" class="tab-btn active" data-tab="inspect">
+        <span>🔍 Inspect</span>
+      </button>
+      <button id="tab-understand-btn" class="tab-btn" data-tab="understand">
+        <span>💡 Understand</span>
+      </button>
+      <button id="tab-build-btn" class="tab-btn" data-tab="build">
+        <span>🛠️ Build</span>
+      </button>
+    </nav>
+
     <main class="main-content">
+      <!-- Global Inspection Toggle Button -->
       <div class="actions">
         <button id="toggle-btn" class="btn btn-primary">
           <span class="btn-icon">🔍</span>
@@ -56,228 +71,307 @@
         </button>
       </div>
 
-      <div id="inspector-card" class="card empty-state">
-        <div id="empty-view" class="empty-content">
-          <div class="empty-icon">🎯</div>
-          <p class="empty-title">Inspector Inactive</p>
-          <p class="empty-desc">Click "Start Inspecting" and hover over elements on the webpage to inspect their design metrics.</p>
-        </div>
-
-        <div id="data-view" class="data-content hidden">
-          <!-- Local Offline Inspector Header -->
-          <div class="element-header">
-            <div class="element-tag-group">
-              <span class="tag-badge" id="tag-name">div</span>
-              <span class="dimensions-badge" id="dimensions-val">0px × 0px</span>
-            </div>
-            <span class="tailwind-badge" id="tailwind-radius">rounded-none</span>
+      <!-- TAB 1: INSPECT VIEW -->
+      <div id="view-inspect" class="tab-view">
+        <div id="inspector-card" class="card empty-state">
+          <div id="empty-view" class="empty-content">
+            <div class="empty-icon">🎯</div>
+            <p class="empty-title">Inspector Inactive</p>
+            <p class="empty-desc">Click "Start Inspecting" and hover over elements on the webpage to inspect their design metrics.</p>
           </div>
 
-          <!-- Extracted Code Snippet Box (Tailwind & Raw CSS Copy Buttons) -->
-          <div class="snippet-box">
-            <div class="snippet-header">
-              <span class="metric-label">Extracted Tokens & Rules</span>
-              <div class="snippet-actions">
-                <button id="copy-css-btn" class="btn-copy btn-copy-css">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="16 18 22 12 16 6"></polyline>
-                    <polyline points="8 6 2 12 8 18"></polyline>
-                  </svg>
-                  <span id="copy-css-text">Copy CSS</span>
-                </button>
-                <button id="copy-tailwind-btn" class="btn-copy">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
-                  </svg>
-                  <span id="copy-btn-text">Copy Tailwind</span>
-                </button>
+          <div id="data-view" class="data-content hidden">
+            <!-- Local Offline Inspector Header -->
+            <div class="element-header">
+              <div class="element-tag-group">
+                <span class="tag-badge" id="tag-name">div</span>
+                <span class="dimensions-badge" id="dimensions-val">0px × 0px</span>
               </div>
-            </div>
-            <div id="tailwind-snippet" class="snippet-code">font-normal text-sm p-4</div>
-          </div>
-
-          <!-- Instant Computed Telemetry -->
-          <div class="telemetry-sections">
-            <!-- 📐 Layout & Alignment -->
-            <div class="telemetry-group">
-              <span class="group-title">📐 Layout & Alignment</span>
-              <div class="metric-row">
-                <div class="metric-item">
-                  <span class="metric-label">Display</span>
-                  <span class="metric-value font-mono" id="display-val">-</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">Flex Direction</span>
-                  <span class="metric-value font-mono" id="flex-direction-val">-</span>
-                </div>
-              </div>
-              <div class="metric-row">
-                <div class="metric-item">
-                  <span class="metric-label">Justify Content</span>
-                  <span class="metric-value font-mono" id="justify-content-val">-</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">Align Items</span>
-                  <span class="metric-value font-mono" id="align-items-val">-</span>
-                </div>
-              </div>
-              <div class="metric-row">
-                <div class="metric-item">
-                  <span class="metric-label">Gap</span>
-                  <span class="metric-value font-mono" id="gap-val">-</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">Grid Columns</span>
-                  <span class="metric-value font-mono" id="grid-columns-val">-</span>
-                </div>
-              </div>
+              <span class="tailwind-badge" id="tailwind-radius">rounded-none</span>
             </div>
 
-            <!-- 📏 Dimensions & Box Model -->
-            <div class="telemetry-group">
-              <span class="group-title">📏 Dimensions & Box Model</span>
-              <div class="metric-row">
-                <div class="metric-item">
-                  <span class="metric-label">Padding</span>
-                  <span class="metric-value font-mono" id="padding-val">-</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">Margin</span>
-                  <span class="metric-value font-mono" id="margin-val">-</span>
-                </div>
-              </div>
-              <div class="metric-row">
-                <div class="metric-item">
-                  <span class="metric-label">Border Radius</span>
-                  <span class="metric-value font-mono" id="border-radius-val">-</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">Border</span>
-                  <span class="metric-value font-mono" id="border-val">-</span>
+            <!-- Extracted Code Snippet Box (Tailwind & Raw CSS Copy Buttons) -->
+            <div class="snippet-box">
+              <div class="snippet-header">
+                <span class="metric-label">Extracted Tokens & Rules</span>
+                <div class="snippet-actions">
+                  <button id="copy-css-btn" class="btn-copy btn-copy-css">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="16 18 22 12 16 6"></polyline>
+                      <polyline points="8 6 2 12 8 18"></polyline>
+                    </svg>
+                    <span id="copy-css-text">Copy CSS</span>
+                  </button>
+                  <button id="copy-tailwind-btn" class="btn-copy">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                      <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                    </svg>
+                    <span id="copy-btn-text">Copy Tailwind</span>
+                  </button>
                 </div>
               </div>
-              <div class="metric-item">
-                <span class="metric-label">Box Shadow</span>
-                <span class="metric-value font-mono" id="box-shadow-val">-</span>
+              <div id="tailwind-snippet" class="snippet-code">font-normal text-sm p-4</div>
+            </div>
+
+            <!-- Instant Computed Telemetry -->
+            <div class="telemetry-sections">
+              <!-- 📐 Layout & Alignment -->
+              <div class="telemetry-group">
+                <span class="group-title">📐 Layout & Alignment</span>
+                <div class="metric-row">
+                  <div class="metric-item">
+                    <span class="metric-label">Display</span>
+                    <span class="metric-value font-mono" id="display-val">-</span>
+                  </div>
+                  <div class="metric-item">
+                    <span class="metric-label">Flex Direction</span>
+                    <span class="metric-value font-mono" id="flex-direction-val">-</span>
+                  </div>
+                </div>
+                <div class="metric-row">
+                  <div class="metric-item">
+                    <span class="metric-label">Justify Content</span>
+                    <span class="metric-value font-mono" id="justify-content-val">-</span>
+                  </div>
+                  <div class="metric-item">
+                    <span class="metric-label">Align Items</span>
+                    <span class="metric-value font-mono" id="align-items-val">-</span>
+                  </div>
+                </div>
+                <div class="metric-row">
+                  <div class="metric-item">
+                    <span class="metric-label">Gap</span>
+                    <span class="metric-value font-mono" id="gap-val">-</span>
+                  </div>
+                  <div class="metric-item">
+                    <span class="metric-label">Grid Columns</span>
+                    <span class="metric-value font-mono" id="grid-columns-val">-</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 📏 Dimensions & Box Model -->
+              <div class="telemetry-group">
+                <span class="group-title">📏 Dimensions & Box Model</span>
+                <div class="metric-row">
+                  <div class="metric-item">
+                    <span class="metric-label">Padding</span>
+                    <span class="metric-value font-mono" id="padding-val">-</span>
+                  </div>
+                  <div class="metric-item">
+                    <span class="metric-label">Margin</span>
+                    <span class="metric-value font-mono" id="margin-val">-</span>
+                  </div>
+                </div>
+                <div class="metric-row">
+                  <div class="metric-item">
+                    <span class="metric-label">Border Radius</span>
+                    <span class="metric-value font-mono" id="border-radius-val">-</span>
+                  </div>
+                  <div class="metric-item">
+                    <span class="metric-label">Border</span>
+                    <span class="metric-value font-mono" id="border-val">-</span>
+                  </div>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Box Shadow</span>
+                  <span class="metric-value font-mono" id="box-shadow-val">-</span>
+                </div>
+              </div>
+
+              <!-- 🎨 Typography & Colors -->
+              <div class="telemetry-group">
+                <span class="group-title">🎨 Typography & Colors</span>
+                <div class="metric-item">
+                  <span class="metric-label">Font Family</span>
+                  <span class="metric-value font-mono" id="font-family">-</span>
+                </div>
+                <div class="metric-row">
+                  <div class="metric-item">
+                    <span class="metric-label">Font Size</span>
+                    <span class="metric-value" id="font-size">-</span>
+                  </div>
+                  <div class="metric-item">
+                    <span class="metric-label">Font Weight</span>
+                    <span class="metric-value" id="font-weight">-</span>
+                  </div>
+                </div>
+                <div class="metric-row">
+                  <div class="metric-item">
+                    <span class="metric-label">Line Height</span>
+                    <span class="metric-value font-mono" id="line-height-val">-</span>
+                  </div>
+                  <div class="metric-item">
+                    <span class="metric-label">Letter Spacing</span>
+                    <span class="metric-value font-mono" id="letter-spacing-val">-</span>
+                  </div>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Text Align</span>
+                  <span class="metric-value font-mono" id="text-align-val">-</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Text Color</span>
+                  <div class="color-row">
+                    <span class="color-swatch" id="color-swatch"></span>
+                    <span class="metric-value font-mono" id="color-val">-</span>
+                  </div>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Background Color</span>
+                  <div class="color-row">
+                    <span class="color-swatch" id="bg-swatch"></span>
+                    <span class="metric-value font-mono" id="bg-val">-</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ♿ Accessibility & Responsiveness -->
+              <div class="telemetry-group">
+                <span class="group-title">♿ Accessibility & Responsiveness</span>
+                <div class="metric-row">
+                  <div class="metric-item">
+                    <span class="metric-label">Contrast Ratio</span>
+                    <span class="metric-value font-mono" id="a11y-contrast-val">-</span>
+                  </div>
+                  <div class="metric-item">
+                    <span class="metric-label">Touch Target</span>
+                    <span class="metric-value font-mono" id="a11y-target-val">-</span>
+                  </div>
+                </div>
+                <div class="metric-row">
+                  <div class="metric-item">
+                    <span class="metric-label">Screen Reader</span>
+                    <span class="metric-value font-mono" id="a11y-reader-val">-</span>
+                  </div>
+                  <div class="metric-item">
+                    <span class="metric-label">Responsive Strategy</span>
+                    <span class="metric-value font-mono" id="a11y-responsive-val">-</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <!-- 🎨 Typography & Colors -->
-            <div class="telemetry-group">
-              <span class="group-title">🎨 Typography & Colors</span>
-              <div class="metric-item">
-                <span class="metric-label">Font Family</span>
-                <span class="metric-value font-mono" id="font-family">-</span>
-              </div>
-              <div class="metric-row">
-                <div class="metric-item">
-                  <span class="metric-label">Font Size</span>
-                  <span class="metric-value" id="font-size">-</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">Font Weight</span>
-                  <span class="metric-value" id="font-weight">-</span>
-                </div>
-              </div>
-              <div class="metric-row">
-                <div class="metric-item">
-                  <span class="metric-label">Line Height</span>
-                  <span class="metric-value font-mono" id="line-height-val">-</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">Letter Spacing</span>
-                  <span class="metric-value font-mono" id="letter-spacing-val">-</span>
-                </div>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Text Align</span>
-                <span class="metric-value font-mono" id="text-align-val">-</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Text Color</span>
-                <div class="color-row">
-                  <span class="color-swatch" id="color-swatch"></span>
-                  <span class="metric-value font-mono" id="color-val">-</span>
-                </div>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Background Color</span>
-                <div class="color-row">
-                  <span class="color-swatch" id="bg-swatch"></span>
-                  <span class="metric-value font-mono" id="bg-val">-</span>
-                </div>
-              </div>
+            <!-- On-Demand AI Actions -->
+            <div class="ai-actions">
+              <button id="ai-analyze-btn" class="btn btn-ai-gradient">
+                <span>✨ Analyze Design (AI)</span>
+              </button>
+              <button id="ai-recreate-btn" class="btn btn-ai-outline">
+                <span>🤖 Generate Recreate Prompt</span>
+              </button>
             </div>
-
-            <!-- ♿ Accessibility & Responsiveness -->
-            <div class="telemetry-group">
-              <span class="group-title">♿ Accessibility & Responsiveness</span>
-              <div class="metric-row">
-                <div class="metric-item">
-                  <span class="metric-label">Contrast Ratio</span>
-                  <span class="metric-value font-mono" id="a11y-contrast-val">-</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">Touch Target</span>
-                  <span class="metric-value font-mono" id="a11y-target-val">-</span>
-                </div>
-              </div>
-              <div class="metric-row">
-                <div class="metric-item">
-                  <span class="metric-label">Screen Reader</span>
-                  <span class="metric-value font-mono" id="a11y-reader-val">-</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">Responsive Strategy</span>
-                  <span class="metric-value font-mono" id="a11y-responsive-val">-</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- On-Demand AI Actions -->
-          <div class="ai-actions">
-            <button id="ai-analyze-btn" class="btn btn-ai-gradient">
-              <span>✨ Analyze Design (AI)</span>
-            </button>
-            <button id="ai-recreate-btn" class="btn btn-ai-outline">
-              <span>🤖 Generate Recreate Prompt</span>
-            </button>
           </div>
         </div>
       </div>
 
-      <!-- AI Results Section with Animated Skeleton Loader -->
-      <div id="ai-results-card" class="card ai-card hidden">
-        <div class="ai-card-header">
-          <div class="ai-title-row">
-            <span class="ai-sparkle">✨</span>
-            <span id="ai-response-title" class="ai-card-title">AI Insights</span>
+      <!-- TAB 2: UNDERSTAND VIEW (AI Design System Audit) -->
+      <div id="view-understand" class="tab-view hidden">
+        <div class="card ai-card">
+          <div class="ai-card-header">
+            <div class="ai-title-row">
+              <span class="ai-sparkle">💡</span>
+              <span class="ai-card-title">AI Design System Audit</span>
+            </div>
+            <button id="trigger-understand-btn" class="btn-sm btn-ai-gradient">
+              ✨ Run Audit
+            </button>
           </div>
-          <button id="copy-ai-btn" class="btn-copy hidden">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-              <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
-            </svg>
-            <span id="copy-ai-text">Copy AI Output</span>
-          </button>
-        </div>
 
-        <div id="ai-loading" class="ai-loading-container hidden">
-          <div class="skeleton-wrapper">
-            <div class="skeleton-line skeleton-title"></div>
-            <div class="skeleton-line"></div>
-            <div class="skeleton-line"></div>
-            <div class="skeleton-line skeleton-short"></div>
+          <!-- Skeleton Loader -->
+          <div id="understand-skeleton" class="ai-loading-container hidden">
+            <div class="skeleton-wrapper">
+              <div class="skeleton-line skeleton-title"></div>
+              <div class="skeleton-line"></div>
+              <div class="skeleton-line"></div>
+              <div class="skeleton-line skeleton-short"></div>
+            </div>
+            <div class="loading-status">
+              <div class="spinner"></div>
+              <span class="loading-text">Gemini AI is auditing design hierarchy & UX...</span>
+            </div>
           </div>
-          <div class="loading-status">
-            <div class="spinner"></div>
-            <span class="loading-text">Generating AI insights...</span>
+
+          <!-- Audit Output View -->
+          <div id="understand-content" class="audit-output-container">
+            <div id="understand-empty" class="empty-content">
+              <div class="empty-icon">💡</div>
+              <p class="empty-title">No Audit Run Yet</p>
+              <p class="empty-desc">Inspect an element and click "Run Audit" or "Analyze Design (AI)" to generate structured UX scores and recommendations.</p>
+            </div>
+
+            <div id="understand-results" class="audit-results hidden">
+              <div class="score-row">
+                <span class="metric-label">Design System Score</span>
+                <span id="design-score-badge" class="score-badge">88 / 100</span>
+              </div>
+              <p id="understand-summary" class="audit-summary"></p>
+
+              <div class="audit-section">
+                <span class="audit-section-title green">Strengths</span>
+                <ul id="understand-strengths" class="audit-list"></ul>
+              </div>
+
+              <div class="audit-section">
+                <span class="audit-section-title purple">Key Improvements</span>
+                <ul id="understand-improvements" class="audit-list"></ul>
+              </div>
+
+              <div class="snippet-box">
+                <div class="snippet-header">
+                  <span class="metric-label">Refactored Tailwind Component</span>
+                  <button id="copy-refactored-btn" class="btn-copy">
+                    <span>Copy Snippet</span>
+                  </button>
+                </div>
+                <div id="understand-refactored-snippet" class="snippet-code"></div>
+              </div>
+            </div>
           </div>
         </div>
+      </div>
 
-        <div id="ai-output-text" class="ai-output"></div>
+      <!-- TAB 3: BUILD VIEW (AI Code & Prompt Synthesizer) -->
+      <div id="view-build" class="tab-view hidden">
+        <div class="card ai-card">
+          <div class="ai-card-header">
+            <div class="ai-title-row">
+              <span class="ai-sparkle">🛠️</span>
+              <span class="ai-card-title">AI Component Prompt Builder</span>
+            </div>
+            <button id="copy-build-prompt-btn" class="btn-copy hidden">
+              <span id="copy-build-text">Copy Prompt</span>
+            </button>
+          </div>
+
+          <!-- Skeleton Loader -->
+          <div id="build-skeleton" class="ai-loading-container hidden">
+            <div class="skeleton-wrapper">
+              <div class="skeleton-line skeleton-title"></div>
+              <div class="skeleton-line"></div>
+              <div class="skeleton-line"></div>
+              <div class="skeleton-line skeleton-short"></div>
+            </div>
+            <div class="loading-status">
+              <div class="spinner"></div>
+              <span class="loading-text">Synthesizing production prompt for v0/Cursor...</span>
+            </div>
+          </div>
+
+          <!-- Build Output View -->
+          <div id="build-content" class="build-output-container">
+            <div id="build-empty" class="empty-content">
+              <div class="empty-icon">🛠️</div>
+              <p class="empty-title">Prompt Engine Idle</p>
+              <p class="empty-desc">Inspect an element and click "Generate Recreate Prompt" to build a React + Tailwind prompt for AI code generators.</p>
+            </div>
+
+            <div id="build-results" class="build-results hidden">
+              <div id="build-prompt-text" class="ai-output"></div>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
 
@@ -299,6 +393,7 @@
 
   <script src="../utils/tailwindMapper.js"></script>
   <script src="../utils/a11yAuditor.js"></script>
+  <script type="module" src="../src/services/gemini.js"></script>
   <script src="sidepanel.js"></script>
 </body>
 </html>

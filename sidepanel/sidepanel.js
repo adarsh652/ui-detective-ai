@@ -1,5 +1,7 @@
 let currentInspectData = null;
 let currentTailwindClasses = '';
+let currentRefactoredTailwind = '';
+let currentBuildPrompt = '';
 let pendingAIAction = null;
 
 // Helper: Get active web tab reliably across sidepanel and main window
@@ -78,7 +80,28 @@ function loadApiKey() {
     if (result.geminiApiKey) {
       const input = document.getElementById('api-key-input');
       if (input) input.value = result.geminiApiKey;
-      showStatus('API Key loaded successfully!', 'success');
+    }
+  });
+}
+
+// Tab Navigation Controller
+function switchTab(tabName) {
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  const tabViews = document.querySelectorAll('.tab-view');
+
+  tabBtns.forEach(btn => {
+    if (btn.dataset.tab === tabName) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+
+  tabViews.forEach(view => {
+    if (view.id === `view-${tabName}`) {
+      view.classList.remove('hidden');
+    } else {
+      view.classList.add('hidden');
     }
   });
 }
@@ -88,17 +111,31 @@ function setupEventListeners() {
   const settingsToggleBtn = document.getElementById('settings-toggle-btn');
   const settingsPanel = document.getElementById('settings-panel');
   const saveKeyBtn = document.getElementById('save-key-btn');
+  const clearKeyBtn = document.getElementById('clear-key-btn');
   const toggleBtn = document.getElementById('toggle-btn');
-  const analyzeBtn = document.getElementById('ai-analyze-btn') || document.getElementById('analyze-btn');
-  const recreateBtn = document.getElementById('ai-recreate-btn') || document.getElementById('recreate-btn');
-  const copyOutputBtn = document.getElementById('copy-ai-btn') || document.getElementById('copy-output-btn');
+
+  const tabInspectBtn = document.getElementById('tab-inspect-btn');
+  const tabUnderstandBtn = document.getElementById('tab-understand-btn');
+  const tabBuildBtn = document.getElementById('tab-build-btn');
+
+  const analyzeBtn = document.getElementById('ai-analyze-btn');
+  const recreateBtn = document.getElementById('ai-recreate-btn');
+  const triggerUnderstandBtn = document.getElementById('trigger-understand-btn');
+
   const copyTailwindBtn = document.getElementById('copy-tailwind-btn');
   const copyCssBtn = document.getElementById('copy-css-btn');
+  const copyRefactoredBtn = document.getElementById('copy-refactored-btn');
+  const copyBuildPromptBtn = document.getElementById('copy-build-prompt-btn');
 
   const apiKeyModal = document.getElementById('api-key-modal');
   const modalCloseBtn = document.getElementById('modal-close-btn');
   const modalSaveKeyBtn = document.getElementById('modal-save-key-btn');
   const modalApiKeyInput = document.getElementById('modal-api-key-input');
+
+  // Tabs Navigation Listeners
+  if (tabInspectBtn) tabInspectBtn.addEventListener('click', () => switchTab('inspect'));
+  if (tabUnderstandBtn) tabUnderstandBtn.addEventListener('click', () => switchTab('understand'));
+  if (tabBuildBtn) tabBuildBtn.addEventListener('click', () => switchTab('build'));
 
   // Settings Drawer Toggle
   if (settingsToggleBtn && settingsPanel) {
@@ -121,6 +158,17 @@ function setupEventListeners() {
       }
       chrome.storage.local.set({ geminiApiKey: key }, () => {
         showStatus('API Key saved!', 'success');
+      });
+    });
+  }
+
+  if (clearKeyBtn) {
+    clearKeyBtn.addEventListener('click', () => {
+      chrome.storage.local.remove(['geminiApiKey'], () => {
+        const input = document.getElementById('api-key-input');
+        if (input) input.value = '';
+        if (modalApiKeyInput) modalApiKeyInput.value = '';
+        showStatus('API Key Cleared', 'error');
       });
     });
   }
@@ -193,21 +241,12 @@ function setupEventListeners() {
     analyzeBtn.addEventListener('click', () => handleAIAction('ANALYZE'));
   }
 
-  if (recreateBtn) {
-    recreateBtn.addEventListener('click', () => handleAIAction('RECREATE'));
+  if (triggerUnderstandBtn) {
+    triggerUnderstandBtn.addEventListener('click', () => handleAIAction('ANALYZE'));
   }
 
-  if (copyOutputBtn) {
-    copyOutputBtn.addEventListener('click', () => {
-      const outputContainer = document.getElementById('ai-output-text') || document.getElementById('ai-output-content');
-      const outputText = outputContainer ? outputContainer.textContent : '';
-      if (outputText) {
-        navigator.clipboard.writeText(outputText);
-        const btnText = document.getElementById('copy-ai-text') || copyOutputBtn;
-        btnText.textContent = 'Copied!';
-        setTimeout(() => { btnText.textContent = 'Copy AI Output'; }, 2000);
-      }
-    });
+  if (recreateBtn) {
+    recreateBtn.addEventListener('click', () => handleAIAction('RECREATE'));
   }
 
   if (copyTailwindBtn) {
@@ -232,6 +271,27 @@ function setupEventListeners() {
           setTimeout(() => { if (copyCssText) copyCssText.textContent = 'Copy CSS'; }, 2000);
         });
       }
+    });
+  }
+
+  if (copyRefactoredBtn) {
+    copyRefactoredBtn.addEventListener('click', () => {
+      if (!currentRefactoredTailwind) return;
+      navigator.clipboard.writeText(currentRefactoredTailwind).then(() => {
+        copyRefactoredBtn.textContent = 'Copied!';
+        setTimeout(() => { copyRefactoredBtn.textContent = 'Copy Snippet'; }, 2000);
+      });
+    });
+  }
+
+  if (copyBuildPromptBtn) {
+    copyBuildPromptBtn.addEventListener('click', () => {
+      if (!currentBuildPrompt) return;
+      navigator.clipboard.writeText(currentBuildPrompt).then(() => {
+        const textSpan = document.getElementById('copy-build-text') || copyBuildPromptBtn;
+        textSpan.textContent = 'Copied!';
+        setTimeout(() => { textSpan.textContent = 'Copy Prompt'; }, 2000);
+      });
     });
   }
 }
@@ -294,171 +354,106 @@ async function handleAIAction(actionType) {
       setTimeout(() => settingsPanel.classList.remove('pulse-highlight'), 3000);
     }
 
-    // Also reveal overlay modal
+    // Reveal overlay modal
     const apiKeyModal = document.getElementById('api-key-modal');
     if (apiKeyModal) apiKeyModal.classList.remove('hidden');
     return;
   }
 
   if (!currentInspectData) {
-    showAIOutput('⚠️ Please click "Start Inspecting" and hover over a component on the page first!', true);
+    showStatus('Please inspect a UI element on the webpage first!', 'error');
+    switchTab('inspect');
     return;
   }
 
-  showAIOutput('🧠 Processing with AI...', false, true);
+  const gemini = window.geminiService;
 
-  let prompt = '';
   if (actionType === 'ANALYZE') {
-    prompt = `Analyze this UI element telemetry:
-Tag: <${currentInspectData.tagName}>
-Font: ${currentInspectData.fontFamily} (${currentInspectData.fontSize}, Weight: ${currentInspectData.fontWeight})
-Colors: Text ${currentInspectData.color}, BG ${currentInspectData.backgroundColor}
-Padding: ${currentInspectData.padding}, Margin: ${currentInspectData.margin || 'N/A'}
-Border Radius: ${currentInspectData.borderRadius}
-Tailwind Classes: ${currentInspectData.tailwindClasses ? currentInspectData.tailwindClasses.join(' ') : 'N/A'}
+    switchTab('understand');
+    const understandEmpty = document.getElementById('understand-empty');
+    const understandResults = document.getElementById('understand-results');
+    const understandSkeleton = document.getElementById('understand-skeleton');
 
-Provide 4 quick bullet points evaluating Visual Hierarchy, Color Contrast, Spacing System, and 1 UX Suggestion.`;
-  } else {
-    prompt = `Create a clean, production-ready AI prompt for v0/Cursor to recreate this UI component in React + Tailwind CSS:
-Tag: <${currentInspectData.tagName}>
-Font: ${currentInspectData.fontFamily} (${currentInspectData.fontSize}, Weight: ${currentInspectData.fontWeight})
-Text Color: ${currentInspectData.color}
-Background Color: ${currentInspectData.backgroundColor}
-Padding: ${currentInspectData.padding}
-Border Radius: ${currentInspectData.borderRadius}
-Tailwind Utility Classes: ${currentInspectData.tailwindClasses ? currentInspectData.tailwindClasses.join(' ') : 'N/A'}
-
-Start the response directly with: "Build a React component using Tailwind CSS..."`;
-  }
-
-  try {
-    const resultText = await callGeminiAPI(apiKey, prompt);
-    showAIOutput(resultText, false);
-  } catch (err) {
-    showAIOutput(`❌ API Error: ${err.message}`, true);
-  }
-}
-
-// Dynamic Model Discovery & API Call with Native Structured JSON Generation
-async function callGeminiAPI(apiKey, promptText) {
-  let availableModels = [];
-
-  try {
-    const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-    if (modelsRes.ok) {
-      const modelsData = await modelsRes.json();
-      availableModels = (modelsData.models || [])
-        .filter(m => m.supportedGenerationMethods?.includes('generateContent'))
-        .map(m => m.name);
-    }
-  } catch (e) {
-    console.warn('Could not list models, falling back to defaults.', e);
-  }
-
-  if (availableModels.length === 0) {
-    availableModels = [
-      'models/gemini-1.5-flash',
-      'models/gemini-2.0-flash',
-      'models/gemini-1.5-flash-latest'
-    ];
-  }
-
-  let lastError = null;
-
-  for (const modelName of availableModels) {
-    if (modelName.includes('2.5')) continue;
+    if (understandEmpty) understandEmpty.classList.add('hidden');
+    if (understandResults) understandResults.classList.add('hidden');
+    if (understandSkeleton) understandSkeleton.classList.remove('hidden');
 
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: promptText }] }],
-          generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: "OBJECT",
-              properties: {
-                output: { type: "STRING" }
-              },
-              required: ["output"]
-            }
-          }
-        })
-      });
+      const audit = await gemini.analyzeDesignWithGemini(apiKey, currentInspectData);
 
-      const data = await response.json();
+      const scoreEl = document.getElementById('design-score-badge');
+      const summaryEl = document.getElementById('understand-summary');
+      const strengthsEl = document.getElementById('understand-strengths');
+      const improvementsEl = document.getElementById('understand-improvements');
+      const snippetEl = document.getElementById('understand-refactored-snippet');
 
-      if (!response.ok) {
-        lastError = new Error(data.error?.message || `HTTP ${response.status}`);
-        continue;
+      if (scoreEl) scoreEl.textContent = `${audit.designScore || 85} / 100`;
+      if (summaryEl) summaryEl.textContent = audit.summary || '';
+      if (strengthsEl) {
+        strengthsEl.innerHTML = (audit.strengths || []).map(s => `<li>${s}</li>`).join('');
+      }
+      if (improvementsEl) {
+        improvementsEl.innerHTML = (audit.improvements || []).map(imp => `<li>${imp}</li>`).join('');
       }
 
-      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      currentRefactoredTailwind = audit.refactoredTailwind || '';
+      if (snippetEl) snippetEl.textContent = currentRefactoredTailwind;
 
-      if (rawText) {
-        try {
-          const parsed = JSON.parse(rawText);
-          if (parsed && parsed.output) {
-            return parsed.output.trim();
-          }
-        } catch (jsonErr) {
-          return rawText.trim();
-        }
+      if (understandSkeleton) understandSkeleton.classList.add('hidden');
+      if (understandResults) {
+        understandResults.classList.remove('hidden');
+        understandResults.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     } catch (err) {
-      lastError = err;
+      if (understandSkeleton) understandSkeleton.classList.add('hidden');
+      if (understandEmpty) {
+        understandEmpty.classList.remove('hidden');
+        showStatus(`❌ ${err.message}`, 'error');
+      }
     }
-  }
+  } else if (actionType === 'RECREATE') {
+    switchTab('build');
+    const buildEmpty = document.getElementById('build-empty');
+    const buildResults = document.getElementById('build-results');
+    const buildSkeleton = document.getElementById('build-skeleton');
+    const copyPromptBtn = document.getElementById('copy-build-prompt-btn');
 
-  throw lastError || new Error('Unable to generate content with available Gemini models.');
-}
+    if (buildEmpty) buildEmpty.classList.add('hidden');
+    if (buildResults) buildResults.classList.add('hidden');
+    if (buildSkeleton) buildSkeleton.classList.remove('hidden');
 
-// Display Messages with Skeleton Loader & Auto-Scroll
-function showAIOutput(text, isError, isLoading = false) {
-  const container = document.getElementById('ai-output-text') || document.getElementById('ai-output-content');
-  const card = document.getElementById('ai-results-card') || document.getElementById('ai-output-card');
-  const loadingEl = document.getElementById('ai-loading');
-  const copyBtn = document.getElementById('copy-ai-btn') || document.getElementById('copy-output-btn');
+    try {
+      const promptResult = await gemini.generateRecreatePromptWithGemini(apiKey, currentInspectData);
+      currentBuildPrompt = promptResult;
 
-  if (card) {
-    card.classList.remove('hidden');
-    card.style.display = 'block';
-    card.style.borderColor = isError ? '#ef4444' : 'rgba(168, 85, 247, 0.3)';
-    card.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }
+      const promptTextEl = document.getElementById('build-prompt-text');
+      if (promptTextEl) promptTextEl.textContent = currentBuildPrompt;
 
-  if (loadingEl) {
-    if (isLoading) {
-      loadingEl.classList.remove('hidden');
-    } else {
-      loadingEl.classList.add('hidden');
-    }
-  }
-
-  if (container) {
-    container.textContent = isLoading ? '' : text;
-  }
-
-  if (copyBtn) {
-    if (isError || isLoading) {
-      copyBtn.classList.add('hidden');
-    } else {
-      copyBtn.classList.remove('hidden');
+      if (buildSkeleton) buildSkeleton.classList.add('hidden');
+      if (copyPromptBtn) copyPromptBtn.classList.remove('hidden');
+      if (buildResults) {
+        buildResults.classList.remove('hidden');
+        buildResults.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    } catch (err) {
+      if (buildSkeleton) buildSkeleton.classList.add('hidden');
+      if (buildEmpty) {
+        buildEmpty.classList.remove('hidden');
+        showStatus(`❌ ${err.message}`, 'error');
+      }
     }
   }
 }
 
 function showStatus(msg, type) {
-  const statusEl = document.getElementById('api-key-status') || document.getElementById('status-msg');
+  const statusEl = document.getElementById('api-key-status');
   if (statusEl) {
     statusEl.textContent = msg;
     statusEl.classList.remove('hidden');
     statusEl.style.color = type === 'error' ? '#f87171' : '#4ade80';
     setTimeout(() => {
       statusEl.classList.add('hidden');
-    }, 3000);
+    }, 3500);
   }
 }
 
