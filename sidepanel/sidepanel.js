@@ -174,6 +174,34 @@ function renderInspectData(data) {
   borderRadiusValEl.textContent = data.borderRadius || '-';
 }
 
+// Dynamic Gemini Model Discovery Helper
+async function getAvailableGeminiModel(apiKey) {
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+    if (!response.ok) {
+      return 'models/gemini-2.0-flash';
+    }
+    const data = await response.json();
+    const models = data.models || [];
+    
+    const validModels = models.filter(m => 
+      Array.isArray(m.supportedGenerationMethods) && 
+      m.supportedGenerationMethods.includes('generateContent')
+    );
+
+    const flashModel = validModels.find(m => m.name.toLowerCase().includes('flash'));
+    if (flashModel) return flashModel.name;
+
+    const proModel = validModels.find(m => m.name.toLowerCase().includes('pro'));
+    if (proModel) return proModel.name;
+
+    if (validModels.length > 0) return validModels[0].name;
+  } catch (err) {
+    console.warn('Model discovery failed, using fallback:', err);
+  }
+  return 'models/gemini-2.0-flash';
+}
+
 // Call Gemini API
 async function callGeminiAPI(promptText) {
   const apiKey = apiKeyInput.value.trim();
@@ -192,7 +220,10 @@ async function callGeminiAPI(promptText) {
   copyAiBtn.classList.add('hidden');
 
   try {
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const rawModelName = await getAvailableGeminiModel(apiKey);
+    const modelPath = rawModelName.startsWith('models/') ? rawModelName : `models/${rawModelName}`;
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/${modelPath}:generateContent?key=${apiKey}`;
+
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
