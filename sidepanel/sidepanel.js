@@ -47,14 +47,14 @@ function setupEventListeners() {
       const isInspecting = toggleBtn.dataset.inspecting === 'true';
       const newState = !isInspecting;
       toggleBtn.dataset.inspecting = newState;
-      
+
       const btnText = document.getElementById('btn-text');
       if (btnText) {
         btnText.textContent = newState ? 'Stop Inspecting' : 'Start Inspecting';
       } else {
         toggleBtn.textContent = newState ? 'Stop Inspecting' : 'Start Inspecting';
       }
-      
+
       if (newState) {
         toggleBtn.classList.remove('btn-primary');
         toggleBtn.classList.add('btn-danger');
@@ -163,11 +163,8 @@ async function handleAIAction(actionType) {
 
   let prompt = '';
   if (actionType === 'ANALYZE') {
-    prompt = `You are an expert Senior UI/UX Designer.
-
-CRITICAL INSTRUCTION: Output ONLY the 4 bullet points below. Do not include any internal thinking, meta-analysis, or introductory/concluding remarks.
-
-Element Data:
+    prompt = `You are a Senior UI/UX Designer.
+Analyze this inspected UI element data:
 - Tag: <${currentInspectData.tagName}>
 - Typography: ${currentInspectData.fontFamily} (${currentInspectData.fontSize}, Weight: ${currentInspectData.fontWeight})
 - Colors: Text ${currentInspectData.color}, Background ${currentInspectData.backgroundColor}
@@ -176,26 +173,25 @@ Element Data:
 - Border Radius: ${currentInspectData.borderRadius} (${currentInspectData.tailwindRadius || ''})
 - Tailwind Classes: ${currentInspectData.tailwindClasses ? currentInspectData.tailwindClasses.join(' ') : 'N/A'}
 
-Format strictly as 4 bullet points:
-1. Visual Hierarchy & Typography choice
-2. Color Contrast & Mood
-3. Spacing & Padding System
-4. 1 UX Improvement Suggestion`;
-  } else {
-    prompt = `You are a Frontend Architect. Create a production-ready AI prompt to recreate this component in React + Tailwind CSS:
+Provide 4 quick bullet points evaluating Visual Hierarchy, Color Contrast, Spacing System, and 1 UX Suggestion.
 
-Inspected Component Data:
+CRITICAL REQUIREMENT: Wrap your EXACT final 4 bullet points inside <OUTPUT> and </OUTPUT> tags. Do NOT place any thinking or notes inside the <OUTPUT> tags.`;
+  } else {
+    prompt = `You are an expert AI prompt engineer for frontend AI tools (v0, Cursor, Claude).
+Create a production-ready prompt to build this component in React + Tailwind CSS:
+
+Component Telemetry:
 - Tag: <${currentInspectData.tagName}>
-- Typography: ${currentInspectData.fontFamily} (${currentInspectData.fontSize})
+- Typography: ${currentInspectData.fontFamily} (${currentInspectData.fontSize}, Weight: ${currentInspectData.fontWeight})
 - Text Color: ${currentInspectData.color}
 - Background: ${currentInspectData.backgroundColor}
 - Padding: ${currentInspectData.padding}
 - Border Radius: ${currentInspectData.borderRadius}
 - Converted Tailwind: ${currentInspectData.tailwindClasses ? currentInspectData.tailwindClasses.join(' ') : 'N/A'}
 
-Format output as a structured prompt for v0/Cursor/Claude:
-- "Build a React component using Tailwind CSS..."
-- Specify exact colors, padding, typography, hover effects, and responsive layout instructions.`;
+Format the prompt to start directly with "Build a React component using Tailwind CSS...". Include exact colors, padding, typography, hover effects, and mobile responsive instructions.
+
+CRITICAL REQUIREMENT: Wrap your EXACT final output prompt inside <OUTPUT> and </OUTPUT> tags. Put all draft notes, thinking, or reasoning OUTSIDE the <OUTPUT> tags.`;
   }
 
   try {
@@ -206,7 +202,7 @@ Format output as a structured prompt for v0/Cursor/Claude:
   }
 }
 
-// Auto-discovering Gemini API Call Engine with System Instructions
+// Dynamic Model Discovery & API Call with XML Parsing
 async function callGeminiAPI(apiKey, promptText) {
   let availableModels = [];
 
@@ -233,7 +229,6 @@ async function callGeminiAPI(apiKey, promptText) {
   let lastError = null;
 
   for (const modelName of availableModels) {
-    // Skip deprecated 2.5 models
     if (modelName.includes('2.5')) continue;
 
     try {
@@ -242,11 +237,6 @@ async function callGeminiAPI(apiKey, promptText) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          systemInstruction: {
-            parts: [{
-              text: "You are a direct code and design output engine. You MUST ONLY output the final requested content. NEVER output internal thinking, draft notes, reasoning steps, or meta-analysis."
-            }]
-          },
           contents: [{ parts: [{ text: promptText }] }]
         })
       });
@@ -259,15 +249,22 @@ async function callGeminiAPI(apiKey, promptText) {
       }
 
       const candidate = data.candidates?.[0];
-      let text = candidate?.content?.parts?.[0]?.text;
-      
-      if (text) {
-        // Cleaning safety net: if output starts with reasoning markers, strip them out
-        if (text.includes("Build a React component")) {
-          const cleanIdx = text.indexOf("Build a React component");
-          text = text.slice(cleanIdx);
+      const rawText = candidate?.content?.parts?.[0]?.text;
+
+      if (rawText) {
+        // Extract content strictly between <OUTPUT> and </OUTPUT>
+        const outputMatch = rawText.match(/<OUTPUT>([\s\S]*?)<\/OUTPUT>/i);
+        if (outputMatch && outputMatch[1]) {
+          return outputMatch[1].trim();
         }
-        return text.trim();
+
+        // Fallback: If model omitted tags, strip thinking bullet points
+        const fallbackText = rawText
+          .replace(/^(\s*\*\s*Role:[\s\S]*?\n\n)/i, '')
+          .replace(/^(\s*\*\s*Input:[\s\S]*?\n\n)/i, '')
+          .trim();
+
+        return fallbackText;
       }
     } catch (err) {
       lastError = err;
