@@ -196,39 +196,30 @@ async function handleAIAction(actionType) {
     return;
   }
 
-  showAIOutput('🧠 Analyzing with Gemini AI... Please wait...', false, true);
+  showAIOutput('🧠 Processing with AI...', false, true);
 
   let prompt = '';
   if (actionType === 'ANALYZE') {
-    prompt = `You are a Senior UI/UX Designer.
-Analyze this inspected UI element data:
-- Tag: <${currentInspectData.tagName}>
-- Typography: ${currentInspectData.fontFamily} (${currentInspectData.fontSize}, Weight: ${currentInspectData.fontWeight})
-- Colors: Text ${currentInspectData.color}, Background ${currentInspectData.backgroundColor}
-- Padding: ${currentInspectData.padding}
-- Margin: ${currentInspectData.margin || 'N/A'}
-- Border Radius: ${currentInspectData.borderRadius} (${currentInspectData.tailwindRadius || ''})
-- Tailwind Classes: ${currentInspectData.tailwindClasses ? currentInspectData.tailwindClasses.join(' ') : 'N/A'}
+    prompt = `Analyze this UI element telemetry:
+Tag: <${currentInspectData.tagName}>
+Font: ${currentInspectData.fontFamily} (${currentInspectData.fontSize}, Weight: ${currentInspectData.fontWeight})
+Colors: Text ${currentInspectData.color}, BG ${currentInspectData.backgroundColor}
+Padding: ${currentInspectData.padding}, Margin: ${currentInspectData.margin || 'N/A'}
+Border Radius: ${currentInspectData.borderRadius}
+Tailwind Classes: ${currentInspectData.tailwindClasses ? currentInspectData.tailwindClasses.join(' ') : 'N/A'}
 
-Provide 4 quick bullet points evaluating Visual Hierarchy, Color Contrast, Spacing System, and 1 UX Suggestion.
-
-CRITICAL REQUIREMENT: Wrap your EXACT final output inside <OUTPUT> and </OUTPUT> tags. Do NOT output any thinking, notes, or draft bullets outside <OUTPUT> tags.`;
+Provide 4 quick bullet points evaluating Visual Hierarchy, Color Contrast, Spacing System, and 1 UX Suggestion.`;
   } else {
-    prompt = `You are an expert AI prompt engineer for frontend AI tools (v0, Cursor, Claude).
-Create a production-ready prompt to build this component in React + Tailwind CSS:
+    prompt = `Create a clean, production-ready AI prompt for v0/Cursor to recreate this UI component in React + Tailwind CSS:
+Tag: <${currentInspectData.tagName}>
+Font: ${currentInspectData.fontFamily} (${currentInspectData.fontSize}, Weight: ${currentInspectData.fontWeight})
+Text Color: ${currentInspectData.color}
+Background Color: ${currentInspectData.backgroundColor}
+Padding: ${currentInspectData.padding}
+Border Radius: ${currentInspectData.borderRadius}
+Tailwind Utility Classes: ${currentInspectData.tailwindClasses ? currentInspectData.tailwindClasses.join(' ') : 'N/A'}
 
-Component Telemetry:
-- Tag: <${currentInspectData.tagName}>
-- Typography: ${currentInspectData.fontFamily} (${currentInspectData.fontSize}, Weight: ${currentInspectData.fontWeight})
-- Text Color: ${currentInspectData.color}
-- Background: ${currentInspectData.backgroundColor}
-- Padding: ${currentInspectData.padding}
-- Border Radius: ${currentInspectData.borderRadius}
-- Converted Tailwind: ${currentInspectData.tailwindClasses ? currentInspectData.tailwindClasses.join(' ') : 'N/A'}
-
-Format the prompt to start directly with "Build a React component using Tailwind CSS...". Include exact colors, padding, typography, hover effects, and mobile responsive instructions.
-
-CRITICAL REQUIREMENT: Wrap your EXACT final output prompt inside <OUTPUT> and </OUTPUT> tags. Do NOT output any thinking, notes, or draft bullets outside <OUTPUT> tags.`;
+Start the response directly with: "Build a React component using Tailwind CSS..."`;
   }
 
   try {
@@ -239,7 +230,7 @@ CRITICAL REQUIREMENT: Wrap your EXACT final output prompt inside <OUTPUT> and </
   }
 }
 
-// Dynamic Model Discovery & API Call with Robust Bottom-Up Parsing
+// Dynamic Model Discovery & API Call with Native Structured JSON Generation
 async function callGeminiAPI(apiKey, promptText) {
   let availableModels = [];
 
@@ -274,15 +265,17 @@ async function callGeminiAPI(apiKey, promptText) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          systemInstruction: {
-            parts: [{
-              text: "You are a strict prompt generation engine. DO NOT output any internal thinking, draft steps, meta-analysis, or self-correction. Output ONLY the final result inside <OUTPUT> and </OUTPUT> tags."
-            }]
-          },
+          contents: [{ parts: [{ text: promptText }] }],
           generationConfig: {
-            temperature: 0.1
-          },
-          contents: [{ parts: [{ text: promptText }] }]
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                output: { type: "STRING" }
+              },
+              required: ["output"]
+            }
+          }
         })
       });
 
@@ -293,11 +286,17 @@ async function callGeminiAPI(apiKey, promptText) {
         continue;
       }
 
-      const candidate = data.candidates?.[0];
-      const rawText = candidate?.content?.parts?.[0]?.text;
+      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
       if (rawText) {
-        return cleanThinkingNotes(rawText);
+        try {
+          const parsed = JSON.parse(rawText);
+          if (parsed && parsed.output) {
+            return parsed.output.trim();
+          }
+        } catch (jsonErr) {
+          return rawText.trim();
+        }
       }
     } catch (err) {
       lastError = err;
