@@ -344,7 +344,14 @@ function handleMouseMove(e) {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'TOGGLE_INSPECTOR') {
-    isInspecting = message.isInspecting !== undefined ? message.isInspecting : !isInspecting;
+    if (message.isInspecting !== undefined) {
+      isInspecting = message.isInspecting;
+    } else if (message.enabled !== undefined) {
+      isInspecting = message.enabled;
+    } else {
+      isInspecting = !isInspecting;
+    }
+
     if (isInspecting) {
       document.addEventListener('mousemove', handleMouseMove, true);
       createOverlay();
@@ -356,4 +363,5 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   } else if (message.type === 'GET_TECH_STACK') {
     sendResponse({ techStack: detectTechStack() });
   }
+  return true;
 });

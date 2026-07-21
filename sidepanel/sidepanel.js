@@ -1,6 +1,43 @@
 let currentInspectData = null;
 let currentTailwindClasses = '';
 
+// Helper: Get active web tab reliably across sidepanel and main window
+async function getActiveTab() {
+  try {
+    const tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    if (tabs && tabs.length > 0) return tabs[0];
+    const currentWinTabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    return currentWinTabs ? currentWinTabs[0] : null;
+  } catch (err) {
+    console.warn('Error querying active tab:', err);
+    return null;
+  }
+}
+
+// Helper: Send message to tab with automatic programmatic injection fallback
+async function sendTabMessage(tabId, message) {
+  try {
+    return await chrome.tabs.sendMessage(tabId, message);
+  } catch (err) {
+    try {
+      await chrome.scripting.insertCSS({
+        target: { tabId: tabId },
+        files: ['content.css']
+      }).catch(() => {});
+
+      await chrome.scripting.executeScript({
+        target: { tabId: tabId },
+        files: ['content.js']
+      });
+
+      return await chrome.tabs.sendMessage(tabId, message);
+    } catch (injectErr) {
+      console.warn('Script injection failed (page may be restricted like chrome://):', injectErr);
+      throw err;
+    }
+  }
+}
+
 // Initialize Side Panel
 document.addEventListener('DOMContentLoaded', () => {
   loadApiKey();
@@ -47,14 +84,14 @@ function setupEventListeners() {
       const isInspecting = toggleBtn.dataset.inspecting === 'true';
       const newState = !isInspecting;
       toggleBtn.dataset.inspecting = newState;
-      
+
       const btnText = document.getElementById('btn-text');
       if (btnText) {
         btnText.textContent = newState ? 'Stop Inspecting' : 'Start Inspecting';
       } else {
         toggleBtn.textContent = newState ? 'Stop Inspecting' : 'Start Inspecting';
       }
-      
+
       if (newState) {
         toggleBtn.classList.remove('btn-primary');
         toggleBtn.classList.add('btn-danger');
@@ -63,10 +100,10 @@ function setupEventListeners() {
         toggleBtn.classList.add('btn-primary');
       }
 
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const tab = await getActiveTab();
       if (tab && tab.id) {
         try {
-          const response = await chrome.tabs.sendMessage(tab.id, {
+          const response = await sendTabMessage(tab.id, {
             type: 'TOGGLE_INSPECTOR',
             isInspecting: newState,
             enabled: newState
@@ -75,7 +112,7 @@ function setupEventListeners() {
             renderTechStack(response.techStack);
           }
         } catch (err) {
-          console.warn('Could not communicate with tab:', err);
+          showStatus('Cannot inspect this page (try refreshing the page or navigating to a normal website)', 'error');
         }
       }
     });
@@ -116,10 +153,10 @@ function setupEventListeners() {
 
 // Load Tech Stack from Active Tab
 async function loadTechStack() {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const tab = await getActiveTab();
   if (tab && tab.id) {
     try {
-      const response = await chrome.tabs.sendMessage(tab.id, { type: 'GET_TECH_STACK' });
+      const response = await sendTabMessage(tab.id, { type: 'GET_TECH_STACK' });
       if (response && response.techStack) {
         renderTechStack(response.techStack);
       }
@@ -202,7 +239,7 @@ CRITICAL REQUIREMENT: Wrap your EXACT final output prompt inside <OUTPUT> and </
   }
 }
 
-// Dynamic Model Discovery & API Call with Robust Multi-Tier Parsing
+// Dynamic Model Discovery & API Call with Robust Bottom-Up Parsing
 async function callGeminiAPI(apiKey, promptText) {
   let availableModels = [];
 
@@ -239,8 +276,11 @@ async function callGeminiAPI(apiKey, promptText) {
         body: JSON.stringify({
           systemInstruction: {
             parts: [{
-              text: "You are a strict code and prompt generation engine. OUTPUT ONLY the final requested result enclosed in <OUTPUT> and </OUTPUT> tags. NEVER include your reasoning, internal thoughts, draft steps, or meta-analysis."
+              text: "You are a strict prompt generation engine. DO NOT output any internal thinking, draft steps, meta-analysis, or self-correction. Output ONLY the final result inside <OUTPUT> and </OUTPUT> tags."
             }]
+          },
+          generationConfig: {
+            temperature: 0.1
           },
           contents: [{ parts: [{ text: promptText }] }]
         })
@@ -257,25 +297,7 @@ async function callGeminiAPI(apiKey, promptText) {
       const rawText = candidate?.content?.parts?.[0]?.text;
 
       if (rawText) {
-        // Tier 1: Extract content strictly between <OUTPUT> and </OUTPUT>
-        const outputMatch = rawText.match(/<OUTPUT>([\s\S]*?)<\/OUTPUT>/i);
-        if (outputMatch && outputMatch[1]) {
-          return outputMatch[1].trim();
-        }
-
-        // Tier 2: For Recreate Prompts, anchor directly to "Build a React component"
-        const buildIdx = rawText.indexOf('Build a React component');
-        if (buildIdx !== -1) {
-          return rawText.slice(buildIdx).trim();
-        }
-
-        // Tier 3: Strip out typical thinking/drafting bullet point blocks
-        const cleanedText = rawText
-          .replace(/^([\s\S]*?)(?=\n\n(Build|1\.|Visual Hierarchy|Specifications|Design Specifications|Component Specifications))/i, '')
-          .replace(/^(\s*\*?\s*(Role|Input|Goal|Target Format|Tag|Typography|Text Color|Background|Padding|Border Radius|Converted Tailwind|Constraint|Step \d|Drafting|Revised|Final Prompt)[\s\S]*?\n)+/gi, '')
-          .trim();
-
-        return cleanedText || rawText.trim();
+        return cleanThinkingNotes(rawText);
       }
     } catch (err) {
       lastError = err;
@@ -283,6 +305,46 @@ async function callGeminiAPI(apiKey, promptText) {
   }
 
   throw lastError || new Error('Unable to generate content with available Gemini models.');
+}
+
+// Helper function to aggressively purge residual reasoning notes from LLM output
+function cleanThinkingNotes(text) {
+  // Step 1: If explicit <OUTPUT> tags exist, try to extract inside them first
+  const outputMatch = text.match(/<OUTPUT>([\s\S]*?)(?:<\/OUTPUT>|$)/i);
+  let cleaned = (outputMatch && outputMatch[1]) ? outputMatch[1] : text;
+
+  // Step 2: Search bottom-up for the actual final prompt block
+  const lines = cleaned.split('\n');
+  let targetIndex = -1;
+
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const lineTrimmed = lines[i].trim().replace(/^['"`*#\s]+/, '');
+    const lower = lineTrimmed.toLowerCase();
+
+    if (lower.startsWith('build a react component') || lower.startsWith('build a ')) {
+      // Exclude draft note lines like "Target Format: starting with..." or "? Yes"
+      if (!lower.includes('starting with') &&
+        !lower.includes('target format') &&
+        !lower.includes('? yes') &&
+        !lower.includes('(check)')) {
+        targetIndex = i;
+        break;
+      }
+    }
+  }
+
+  if (targetIndex !== -1) {
+    return lines.slice(targetIndex).join('\n').trim();
+  }
+
+  // Step 3: Fallback cleaning for Design Review bullet points
+  return cleaned
+    .replace(/<\/?OUTPUT>/gi, '')
+    // Remove typical reasoning/drafting headers and bullet lists
+    .replace(/^(\s*\*?\s*(Role|Input|Goal|Target Format|Tag|Typography|Text Color|Background|Padding|Border Radius|Converted Tailwind|Constraint|Step \d|Drafting|Revised|Final Prompt|Self-Correction|Note on|Expanding|Double check|One last check|Final Polish)[\s\S]*?\n)+/gi, '')
+    .replace(/\*?\s*\(Self-Correction[\s\S]*?\)/gi, '')
+    .replace(/\*?\s*Drafting Section[\s\S]*?\n/gi, '')
+    .trim();
 }
 
 // Display Messages
