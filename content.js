@@ -322,21 +322,8 @@ function getEffectiveBackgroundColor(el) {
   return 'rgb(255, 255, 255)';
 }
 
-function handleMouseMove(e) {
-  if (!isInspecting) return;
-
-  const target = e.target;
-  if (!target || target === overlayEl || target.id === 'ui-detective-overlay') return;
-
+function extractElementMetrics(target) {
   const rect = target.getBoundingClientRect();
-  createOverlay();
-
-  overlayEl.style.display = 'block';
-  overlayEl.style.top = `${rect.top}px`;
-  overlayEl.style.left = `${rect.left}px`;
-  overlayEl.style.width = `${rect.width}px`;
-  overlayEl.style.height = `${rect.height}px`;
-
   const style = window.getComputedStyle(target);
   const padding = `${style.paddingTop} ${style.paddingRight} ${style.paddingBottom} ${style.paddingLeft}`;
   const margin = `${style.marginTop} ${style.marginRight} ${style.marginBottom} ${style.marginLeft}`;
@@ -393,7 +380,7 @@ function handleMouseMove(e) {
     }
   }
 
-  const inspectData = {
+  return {
     tagName: target.tagName.toLowerCase(),
     width: `${Math.round(rect.width)}px`,
     height: `${Math.round(rect.height)}px`,
@@ -446,13 +433,43 @@ function handleMouseMove(e) {
     tailwindRadius: tailwindRadius,
     tailwindClasses: tailwindClasses
   };
+}
 
+function handleMouseMove(e) {
+  if (!isInspecting) return;
+  const target = e.target;
+  if (!target || target === overlayEl || target.id === 'ui-detective-overlay') return;
+
+  const rect = target.getBoundingClientRect();
+  createOverlay();
+  overlayEl.style.display = 'block';
+  overlayEl.style.top = `${rect.top}px`;
+  overlayEl.style.left = `${rect.left}px`;
+  overlayEl.style.width = `${rect.width}px`;
+  overlayEl.style.height = `${rect.height}px`;
+
+  const inspectData = extractElementMetrics(target);
   chrome.runtime.sendMessage({
-    type: 'UI_INSPECT_DATA',
+    type: 'ELEMENT_INSPECTED',
+    payload: inspectData,
     data: inspectData
-  }).catch(() => {
-    // Ignore error if sidepanel is not open / listening
-  });
+  }).catch(() => {});
+}
+
+function handleClick(e) {
+  if (!isInspecting) return;
+  const target = e.target;
+  if (!target || target === overlayEl || target.id === 'ui-detective-overlay') return;
+
+  e.preventDefault();
+  e.stopPropagation();
+
+  const inspectData = extractElementMetrics(target);
+  chrome.runtime.sendMessage({
+    type: 'ELEMENT_INSPECTED',
+    payload: inspectData,
+    data: inspectData
+  }).catch(() => {});
 }
 
 let latestTechStack = [];
@@ -480,9 +497,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     if (isInspecting) {
       document.addEventListener('mousemove', handleMouseMove, true);
+      document.addEventListener('click', handleClick, true);
       createOverlay();
     } else {
       document.removeEventListener('mousemove', handleMouseMove, true);
+      document.removeEventListener('click', handleClick, true);
       removeOverlay();
     }
     const stack = latestTechStack.length > 0 ? latestTechStack : detectTechStack();

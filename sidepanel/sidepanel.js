@@ -1,3 +1,4 @@
+let activeElementData = null;
 window.currentInspectedElement = null;
 let currentInspectData = null;
 let currentTailwindClasses = '';
@@ -107,23 +108,23 @@ function switchTab(tabName) {
   });
 
   if (tabName === 'build') {
-    const el = window.currentInspectedElement || currentInspectData;
-    renderBuildTab(el);
+    const el = activeElementData || window.currentInspectedElement || currentInspectData;
+    updateBuildTab(el);
   }
 }
 
 // Render Build Tab Cards Reactively (0ms local synthesis)
-function renderBuildTab(telemetry) {
-  const elem = telemetry || window.currentInspectedElement || currentInspectData;
+function updateBuildTab(data) {
+  const elem = data || activeElementData || window.currentInspectedElement || currentInspectData;
   console.log("Rendering Build Tab with element:", elem);
 
   const buildEmpty = document.getElementById('build-empty');
   const buildResults = document.getElementById('build-results');
-  const promptPreviewEl = document.getElementById('prompt-preview-code');
-  const reactSnippetEl = document.getElementById('react-snippet-code');
+  const promptPreviewEl = document.getElementById('prompt-preview-code') || document.getElementById('prompt-output');
+  const reactSnippetEl = document.getElementById('react-snippet-code') || document.getElementById('react-code-output');
   const targetSelect = document.getElementById('prompt-target-select');
 
-  const fallbackText = "// No element selected. Click an element on the webpage to generate code.";
+  const fallbackText = "// Click an element on the web page to generate code.";
 
   if (!elem) {
     if (buildEmpty) buildEmpty.classList.remove('hidden');
@@ -145,6 +146,10 @@ function renderBuildTab(telemetry) {
     if (promptPreviewEl) promptPreviewEl.textContent = promptText || fallbackText;
     if (reactSnippetEl) reactSnippetEl.textContent = reactCode || fallbackText;
   }
+}
+
+function renderBuildTab(telemetry) {
+  updateBuildTab(telemetry);
 }
 
 // Event Listeners Setup
@@ -184,13 +189,13 @@ function setupEventListeners() {
   // Build Tab Engine Selector
   if (promptTargetSelect) {
     promptTargetSelect.addEventListener('change', () => {
-      renderBuildTab(window.currentInspectedElement || currentInspectData);
+      updateBuildTab(activeElementData || window.currentInspectedElement || currentInspectData);
     });
   }
 
   if (copyPromptBtn) {
     copyPromptBtn.addEventListener('click', () => {
-      const previewEl = document.getElementById('prompt-preview-code');
+      const previewEl = document.getElementById('prompt-preview-code') || document.getElementById('prompt-output');
       if (!previewEl || !previewEl.textContent) return;
       navigator.clipboard.writeText(previewEl.textContent).then(() => {
         const textSpan = document.getElementById('copy-prompt-text');
@@ -202,7 +207,7 @@ function setupEventListeners() {
 
   if (copyReactCodeBtn) {
     copyReactCodeBtn.addEventListener('click', () => {
-      const codeEl = document.getElementById('react-snippet-code');
+      const codeEl = document.getElementById('react-snippet-code') || document.getElementById('react-code-output');
       if (!codeEl || !codeEl.textContent) return;
       navigator.clipboard.writeText(codeEl.textContent).then(() => {
         const textSpan = document.getElementById('copy-react-text');
@@ -337,7 +342,7 @@ function setupEventListeners() {
 
   if (copyCssBtn) {
     copyCssBtn.addEventListener('click', () => {
-      const el = window.currentInspectedElement || currentInspectData;
+      const el = activeElementData || window.currentInspectedElement || currentInspectData;
       if (!el) return;
       const cssRules = generateCSSRules(el);
       if (cssRules) {
@@ -406,7 +411,7 @@ async function handleAIAction(actionType) {
   const inputKey = document.getElementById('api-key-input')?.value.trim();
   const apiKey = geminiApiKey || inputKey;
 
-  const activeElement = window.currentInspectedElement || currentInspectData;
+  const activeElement = activeElementData || window.currentInspectedElement || currentInspectData;
 
   if (!apiKey) {
     pendingAIAction = actionType;
@@ -480,7 +485,7 @@ async function handleAIAction(actionType) {
     }
   } else if (actionType === 'RECREATE') {
     switchTab('build');
-    renderBuildTab(activeElement);
+    updateBuildTab(activeElement);
     const buildResults = document.getElementById('build-results');
     if (buildResults) buildResults.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -499,7 +504,9 @@ function showStatus(msg, type) {
 }
 
 // Render Inspect View Metrics
-function renderInspectView(d) {
+function updateInspectTab(d) {
+  if (!d) return;
+
   const emptyView = document.getElementById('empty-view');
   const dataView = document.getElementById('data-view');
   if (emptyView) emptyView.classList.add('hidden');
@@ -604,19 +611,25 @@ function renderInspectView(d) {
   if (responsiveValEl) responsiveValEl.textContent = responsiveStrategy || '-';
 }
 
+function renderInspectView(d) {
+  updateInspectTab(d);
+}
+
 // Listen for incoming telemetry from content.js (Centralized Global State Sync)
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === 'TECH_STACK_UPDATED' && message.techStack) {
     renderTechStack(message.techStack);
   } else if (
-    (message.type === 'UI_INSPECT_DATA' || message.type === 'ELEMENT_INSPECTED' || message.type === 'ELEMENT_SELECTED') &&
-    message.data
+    (message.type === 'ELEMENT_INSPECTED' || message.type === 'ELEMENT_SELECTED' || message.type === 'UI_INSPECT_DATA') &&
+    (message.payload || message.data)
   ) {
-    window.currentInspectedElement = message.data;
-    currentInspectData = message.data;
+    const data = message.payload || message.data;
+    activeElementData = data;
+    window.currentInspectedElement = data;
+    currentInspectData = data;
 
     // Instantly sync both Inspect and Build tab views
-    renderInspectView(message.data);
-    renderBuildTab(message.data);
+    updateInspectTab(activeElementData);
+    updateBuildTab(activeElementData);
   }
 });
