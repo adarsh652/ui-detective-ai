@@ -21,6 +21,15 @@
       </div>
     </header>
 
+    <div class="config-container">
+      <span class="section-label">AI Configuration</span>
+      <div class="api-key-row">
+        <input type="password" id="api-key-input" class="input-text" placeholder="Gemini API Key..." />
+        <button id="save-key-btn" class="btn-sm btn-secondary">Save Key</button>
+      </div>
+      <div id="api-key-status" class="status-msg hidden">API Key Saved ✓</div>
+    </div>
+
     <div class="tech-stack-container">
       <span class="section-label">Detected Tech Stack</span>
       <div id="tech-stack-badges" class="tech-badges-list">
@@ -112,7 +121,39 @@
               <span class="metric-value font-mono" id="border-radius-val">-</span>
             </div>
           </div>
+
+          <div class="ai-actions">
+            <button id="ai-analyze-btn" class="btn btn-ai-gradient">
+              <span>✨ Analyze Design (AI)</span>
+            </button>
+            <button id="ai-recreate-btn" class="btn btn-ai-outline">
+              <span>🤖 Generate Recreate Prompt</span>
+            </button>
+          </div>
         </div>
+      </div>
+
+      <div id="ai-results-card" class="card ai-card hidden">
+        <div class="ai-card-header">
+          <div class="ai-title-row">
+            <span class="ai-sparkle">✨</span>
+            <span id="ai-response-title" class="ai-card-title">AI Insights</span>
+          </div>
+          <button id="copy-ai-btn" class="btn-copy hidden">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+              <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+            </svg>
+            <span id="copy-ai-text">Copy AI Output</span>
+          </button>
+        </div>
+
+        <div id="ai-loading" class="ai-loading-container hidden">
+          <div class="spinner"></div>
+          <span class="loading-text">Analyzing element with Gemini AI...</span>
+        </div>
+
+        <div id="ai-output-text" class="ai-output"></div>
       </div>
     </main>
   </div>
