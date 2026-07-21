@@ -146,22 +146,32 @@ function switchTab(tabName) {
 
 let currentSelectedData = null;
 
-function renderBuildTabUI(data) {
-  const elem = data || currentSelectedData || activeElementData || window.currentInspectedElement || currentInspectData;
+function renderBuildTab(elementData) {
+  const elem = elementData || currentSelectedData || activeElementData || window.currentInspectedElement || currentInspectData;
+  console.log("Rendering Build Tab with element:", elem);
   if (!elem) return;
   currentSelectedData = elem;
-  console.log('[Sidepanel] Rendering Build Tab UI:', elem);
 
   const buildEmpty = document.getElementById('build-empty');
   const buildResults = document.getElementById('build-results');
-  const targetSelect = document.getElementById('prompt-target-select');
-  const targetPlatform = targetSelect ? targetSelect.value : 'v0_cursor';
-
   if (buildEmpty) buildEmpty.classList.add('hidden');
   if (buildResults) buildResults.classList.remove('hidden');
 
+  const promptEl = document.getElementById('prompt-output');
+  const reactEl = document.getElementById('react-code-output');
+
+  console.log("[BuildTab Debug] Found promptEl:", promptEl, "Found reactEl:", reactEl);
+
+  if (!promptEl || !reactEl) {
+    console.error("[BuildTab Error] Could not find #prompt-output or #react-code-output elements in DOM!");
+    return;
+  }
+
+  const targetSelect = document.getElementById('prompt-target-select');
+  const targetPlatform = targetSelect ? targetSelect.value : 'v0_cursor';
+
   let generatedPrompt = '';
-  let generatedCode = '';
+  let generatedReact = '';
 
   try {
     if (window.promptSynthesizer && typeof window.promptSynthesizer.generateAIPrompt === 'function') {
@@ -171,48 +181,41 @@ function renderBuildTabUI(data) {
     }
 
     if (window.promptSynthesizer && typeof window.promptSynthesizer.generateReactSnippet === 'function') {
-      generatedCode = window.promptSynthesizer.generateReactSnippet(elem);
+      generatedReact = window.promptSynthesizer.generateReactSnippet(elem);
     } else if (window.promptSynthesizer && typeof window.promptSynthesizer.generateReactComponent === 'function') {
-      generatedCode = window.promptSynthesizer.generateReactComponent(elem);
+      generatedReact = window.promptSynthesizer.generateReactComponent(elem);
     } else if (typeof generateReactComponent === 'function') {
-      generatedCode = generateReactComponent(elem);
+      generatedReact = generateReactComponent(elem);
     }
   } catch (err) {
     console.error('[UI Detective Build Error]:', err);
     generatedPrompt = `// Error generating prompt: ${err.message}`;
-    generatedCode = `// Error generating React code: ${err.message}`;
+    generatedReact = `// Error generating React code: ${err.message}`;
   }
 
-  const promptEl = document.getElementById('prompt-output') || document.getElementById('prompt-preview-code') || document.querySelector('.prompt-container');
-  const codeEl = document.getElementById('react-code-output') || document.getElementById('react-snippet-code') || document.querySelector('.code-container');
-
-  if (promptEl) {
-    if (promptEl.tagName === 'TEXTAREA' || promptEl.tagName === 'INPUT') {
-      promptEl.value = generatedPrompt || '// No prompt generated.';
-    } else {
-      promptEl.textContent = generatedPrompt || '// No prompt generated.';
-    }
+  if ('value' in promptEl && (promptEl.tagName === 'TEXTAREA' || promptEl.tagName === 'INPUT')) {
+    promptEl.value = generatedPrompt || '// No prompt generated.';
+  } else {
+    promptEl.textContent = generatedPrompt || '// No prompt generated.';
   }
 
-  if (codeEl) {
-    if (codeEl.tagName === 'TEXTAREA' || codeEl.tagName === 'INPUT') {
-      codeEl.value = generatedCode || '// No React code generated.';
-    } else {
-      codeEl.textContent = generatedCode || '// No React code generated.';
-    }
+  if ('value' in reactEl && (reactEl.tagName === 'TEXTAREA' || reactEl.tagName === 'INPUT')) {
+    reactEl.value = generatedReact || '// No React code generated.';
+  } else {
+    reactEl.textContent = generatedReact || '// No React code generated.';
   }
+}
+
+function renderBuildTabUI(data) {
+  renderBuildTab(data);
 }
 
 function updateBuildTabUI(data) {
-  renderBuildTabUI(data);
+  renderBuildTab(data);
 }
 
 function updateBuildTab(data) {
-  renderBuildTabUI(data);
-}
-
-function renderBuildTab(telemetry) {
-  renderBuildTabUI(telemetry);
+  renderBuildTab(data);
 }
 
 // Event Listeners Setup
