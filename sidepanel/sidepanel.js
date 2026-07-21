@@ -164,7 +164,8 @@ async function handleAIAction(actionType) {
   let prompt = '';
   if (actionType === 'ANALYZE') {
     prompt = `You are an expert Senior UI/UX Designer.
-Analyze this inspected UI element and explain the design choices in 4 concise bullet points:
+
+CRITICAL INSTRUCTION: Output ONLY the 4 bullet points below. Do not include any internal thinking, meta-analysis, or introductory/concluding remarks.
 
 Element Data:
 - Tag: <${currentInspectData.tagName}>
@@ -175,7 +176,7 @@ Element Data:
 - Border Radius: ${currentInspectData.borderRadius} (${currentInspectData.tailwindRadius || ''})
 - Tailwind Classes: ${currentInspectData.tailwindClasses ? currentInspectData.tailwindClasses.join(' ') : 'N/A'}
 
-Provide 4 quick bullet points:
+Format strictly as 4 bullet points:
 1. Visual Hierarchy & Typography choice
 2. Color Contrast & Mood
 3. Spacing & Padding System
