@@ -207,13 +207,8 @@ Format output as a structured prompt for v0/Cursor/Claude:
 
 // Dynamic Model Discovery & API Call
 async function callGeminiAPI(apiKey, promptText) {
-  const preferredModels = [
-    'models/gemini-2.0-flash',
-    'models/gemini-1.5-flash',
-    'models/gemini-2.0-flash-lite'
-  ];
-
-  let selectedModel = 'models/gemini-2.0-flash';
+  // Use gemini-1.5-flash as the default since it has a 15 RPM free tier allowance
+  let selectedModel = 'models/gemini-1.5-flash';
 
   try {
     const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
@@ -223,18 +218,15 @@ async function callGeminiAPI(apiKey, promptText) {
         .filter(m => m.supportedGenerationMethods?.includes('generateContent'))
         .map(m => m.name);
 
-      // Find the first preferred model that is active for this API key
-      const match = preferredModels.find(pref => availableNames.includes(pref));
-      if (match) {
-        selectedModel = match;
-      } else {
-        // Fallback: pick any active flash model except 2.5
-        const safeModel = availableNames.find(name => !name.includes('2.5') && name.includes('flash'));
-        if (safeModel) selectedModel = safeModel;
+      // Prioritize gemini-1.5-flash or 1.5-flash-latest for reliable free tier access
+      if (availableNames.includes('models/gemini-1.5-flash')) {
+        selectedModel = 'models/gemini-1.5-flash';
+      } else if (availableNames.includes('models/gemini-1.5-flash-latest')) {
+        selectedModel = 'models/gemini-1.5-flash-latest';
       }
     }
   } catch (e) {
-    console.warn('Model discovery warning, using default endpoint:', e);
+    console.warn('Model discovery fallback:', e);
   }
 
   const url = `https://generativelanguage.googleapis.com/v1beta/${selectedModel}:generateContent?key=${apiKey}`;
@@ -248,6 +240,9 @@ async function callGeminiAPI(apiKey, promptText) {
 
   const data = await response.json();
   if (!response.ok) {
+    if (response.status === 429 || data.error?.message?.includes('quota')) {
+      throw new Error('⏱️ Free Tier Rate Limit Reached. Please wait ~30 seconds and try again!');
+    }
     throw new Error(data.error?.message || `HTTP ${response.status}`);
   }
 
