@@ -74,6 +74,34 @@ document.addEventListener('DOMContentLoaded', () => {
   loadApiKey();
   setupEventListeners();
   loadTechStack();
+  loadActiveElement();
+});
+
+// Load active inspected element from chrome.storage.local
+function loadActiveElement() {
+  chrome.storage.local.get(['activeInspectedElement'], (result) => {
+    if (result.activeInspectedElement) {
+      activeElementData = result.activeInspectedElement;
+      window.currentInspectedElement = result.activeInspectedElement;
+      currentInspectData = result.activeInspectedElement;
+      updateInspectTab(result.activeInspectedElement);
+      updateBuildTab(result.activeInspectedElement);
+    }
+  });
+}
+
+// Listen for live storage changes across tabs
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === 'local' && changes.activeInspectedElement) {
+    const newData = changes.activeInspectedElement.newValue;
+    if (newData) {
+      activeElementData = newData;
+      window.currentInspectedElement = newData;
+      currentInspectData = newData;
+      updateInspectTab(newData);
+      updateBuildTab(newData);
+    }
+  }
 });
 
 // Load saved API key from chrome.storage.local

@@ -449,11 +449,14 @@ function handleMouseMove(e) {
   overlayEl.style.height = `${rect.height}px`;
 
   const inspectData = extractElementMetrics(target);
-  chrome.runtime.sendMessage({
-    type: 'ELEMENT_INSPECTED',
-    payload: inspectData,
-    data: inspectData
-  }).catch(() => {});
+  chrome.storage.local.set({ activeInspectedElement: inspectData }, () => {
+    chrome.runtime.sendMessage({
+      action: 'ELEMENT_SELECTED',
+      type: 'ELEMENT_INSPECTED',
+      payload: inspectData,
+      data: inspectData
+    }).catch(() => {});
+  });
 }
 
 function handleClick(e) {
@@ -465,11 +468,14 @@ function handleClick(e) {
   e.stopPropagation();
 
   const inspectData = extractElementMetrics(target);
-  chrome.runtime.sendMessage({
-    type: 'ELEMENT_INSPECTED',
-    payload: inspectData,
-    data: inspectData
-  }).catch(() => {});
+  chrome.storage.local.set({ activeInspectedElement: inspectData }, () => {
+    chrome.runtime.sendMessage({
+      action: 'ELEMENT_SELECTED',
+      type: 'ELEMENT_INSPECTED',
+      payload: inspectData,
+      data: inspectData
+    }).catch(() => {});
+  });
 }
 
 let latestTechStack = [];
