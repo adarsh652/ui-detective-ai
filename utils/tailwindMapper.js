@@ -1,5 +1,5 @@
 /**
- * UI Detective AI - Client-Side CSS to Tailwind Tokenizer Utility
+ * InspectUI - Client-Side CSS to Tailwind Tokenizer Utility
  * Converts computed DOM element styles into standard Tailwind v3/v4 utility classes.
  */
 

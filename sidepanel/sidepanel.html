@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>UI Detective AI</title>
+  <title>InspectUI</title>
   <link rel="stylesheet" href="sidepanel.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,9 +20,12 @@
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
-        <h1>UI DETECTIVE <span class="badge-ai">AI</span></h1>
+        <div class="brand-text">
+          <h1>InspectUI</h1>
+          <span class="tagline">Inspect. Understand. Build.</span>
+        </div>
       </div>
-      <button id="settings-toggle-btn" class="icon-btn" title="AI Settings">
+      <button id="settings-toggle-btn" class="icon-btn" title="AI Features Settings">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"></circle>
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
@@ -33,7 +36,7 @@
     <!-- Collapsible AI Configuration Drawer -->
     <div id="settings-panel" class="config-container collapsible-panel hidden">
       <div class="panel-header">
-        <span class="section-label">GEMINI AI CONFIGURATION</span>
+        <span class="section-label">AI FEATURES</span>
       </div>
       <div class="api-key-row">
         <input type="password" id="api-key-input" class="input-text" placeholder="Paste Gemini API Key..." />
@@ -69,7 +72,7 @@
       <div class="actions">
         <button id="toggle-btn" class="btn btn-inspector-outline" data-inspecting="false">
           <span class="pulse-dot"></span>
-          <span id="btn-text">Start Inspector</span>
+          <span id="btn-text">Inspect Element</span>
         </button>
       </div>
 
@@ -85,7 +88,7 @@
               </svg>
             </div>
             <p class="empty-title">Inspector Inactive</p>
-            <p class="empty-desc">Click "Start Inspector" and hover over elements on the webpage to inspect their design metrics.</p>
+            <p class="empty-desc">Click "Inspect Element" and hover over elements on the webpage to inspect their design metrics.</p>
           </div>
 
           <div id="data-view" class="data-content hidden">
@@ -264,21 +267,21 @@
             <!-- On-Demand AI Actions -->
             <div class="ai-actions">
               <button id="ai-analyze-btn" class="btn btn-secondary-devtools">
-                <span>Analyze Design (AI)</span>
+                <span>Analyze Design</span>
               </button>
               <button id="ai-recreate-btn" class="btn btn-secondary-devtools">
-                <span>Generate Recreate Prompt</span>
+                <span>Generate Prompt</span>
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- TAB 2: UNDERSTAND VIEW (AI Design System Audit) -->
+      <!-- TAB 2: UNDERSTAND VIEW (Design System Audit) -->
       <div id="view-understand" class="tab-view hidden">
         <div class="card ai-card">
           <div class="ai-card-header">
-            <span class="card-section-label">AI DESIGN SYSTEM AUDIT</span>
+            <span class="card-section-label">DESIGN SYSTEM AUDIT</span>
             <button id="trigger-understand-btn" class="btn-sm btn-secondary-devtools">
               Run Audit
             </button>
@@ -294,7 +297,7 @@
             </div>
             <div class="loading-status">
               <div class="spinner"></div>
-              <span class="loading-text">Gemini AI is auditing design hierarchy & UX...</span>
+              <span class="loading-text">Auditing design hierarchy & UX...</span>
             </div>
           </div>
 
@@ -311,7 +314,7 @@
                 </svg>
               </div>
               <p class="empty-title">No Audit Run Yet</p>
-              <p class="empty-desc">Inspect an element and click "Run Audit" or "Analyze Design (AI)" to generate structured UX scores and recommendations.</p>
+              <p class="empty-desc">Inspect an element and click "Run Audit" or "Analyze Design" to generate structured UX scores and recommendations.</p>
             </div>
 
             <div id="understand-results" class="audit-results hidden">
@@ -349,7 +352,7 @@
         </div>
       </div>
 
-      <!-- TAB 3: BUILD VIEW (AI Code & Prompt Synthesizer) -->
+      <!-- TAB 3: BUILD VIEW (Code & Prompt Synthesizer) -->
       <div id="view-build" class="tab-view hidden">
         <div id="build-empty" class="card empty-state">
           <div class="empty-content">
@@ -359,8 +362,8 @@
                 <polyline points="8 6 2 12 8 18"></polyline>
               </svg>
             </div>
-            <p class="empty-title">Prompt Engine Idle</p>
-            <p class="empty-desc">Click "Start Inspector" and hover over an element on the webpage to instantly synthesize system prompts and React code.</p>
+            <p class="empty-title">Recreate Engine Idle</p>
+            <p class="empty-desc">Click "Inspect Element" and hover over an element on the webpage to instantly synthesize system prompts and React code.</p>
           </div>
         </div>
 
@@ -381,7 +384,7 @@
               <span class="metric-label">Target Engine:</span>
               <select id="prompt-target-select" class="input-text select-sm">
                 <option value="v0_cursor">v0 / Cursor AI</option>
-                <option value="generic">Generic AI Prompt</option>
+                <option value="generic">Generic Prompt</option>
               </select>
             </div>
             <div class="snippet-box">
@@ -409,17 +412,17 @@
       </div>
     </main>
 
-    <!-- AI Auth / Key Modal Overlay -->
+    <!-- AI Features Auth / Key Modal Overlay -->
     <div id="api-key-modal" class="modal-overlay hidden">
       <div class="modal-card">
         <div class="modal-header">
-          <h3>Unlock AI Subsystem</h3>
+          <h3>Configure AI Features</h3>
           <button id="modal-close-btn" class="modal-close">×</button>
         </div>
-        <p class="modal-desc">Enter your Gemini API Key to unlock AI Design Audits and React Component Generation.</p>
+        <p class="modal-desc">Enter your Gemini API Key to enable AI Design Audits and React Component Generation.</p>
         <div class="modal-body">
           <input type="password" id="modal-api-key-input" class="input-text" placeholder="Paste Gemini API Key..." />
-          <button id="modal-save-key-btn" class="btn btn-secondary-devtools">Save & Unlock AI</button>
+          <button id="modal-save-key-btn" class="btn btn-secondary-devtools">Save API Key</button>
         </div>
       </div>
     </div>

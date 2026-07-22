@@ -1,5 +1,5 @@
 /**
- * UI Detective AI - Main World Detector Script
+ * InspectUI - Main World Detector Script
  * Runs in the web page's MAIN JavaScript execution world to detect
  * frameworks, meta-frameworks, and CSS libraries exposed on window/DOM.
  */
@@ -175,6 +175,6 @@
     const stack = detectFullTechStack();
     window.postMessage({ type: 'UI_DETECTIVE_STACK_RESULT', data: stack }, '*');
   } catch (err) {
-    console.warn('UI Detective AI: Error detecting tech stack in MAIN world:', err);
+    console.warn('InspectUI: Error detecting tech stack in MAIN world:', err);
   }
 })();

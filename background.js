@@ -4,5 +4,5 @@ chrome.sidePanel
   .catch((error) => console.error('Error setting side panel behavior:', error));
 
 chrome.runtime.onInstalled.addListener(() => {
-  console.log('UI Detective AI Extension Installed');
+  console.log('InspectUI Extension Installed');
 });

@@ -1,5 +1,5 @@
 /**
- * UI Detective AI - Accessibility (a11y) and Responsiveness Auditor Utility
+ * InspectUI - Accessibility (a11y) and Responsiveness Auditor Utility
  * Performs offline client-side WCAG contrast ratio calculations, touch target audits,
  * screen reader attribute checks, and responsiveness strategy detection.
  */

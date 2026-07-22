@@ -1,5 +1,5 @@
 /**
- * UI Detective AI - Local Client-Side Prompt Synthesizer & React JSX Code Generator
+ * InspectUI - Local Client-Side Prompt Synthesizer & React JSX Code Generator
  * Generates 0ms latency system prompts for v0/Cursor and modular React + Tailwind JSX components.
  */
 

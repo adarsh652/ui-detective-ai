@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "UI Detective AI",
+  "name": "InspectUI",
   "version": "1.0.0",
-  "description": "AI-powered UI Inspector and Tailwind CSS Helper",
+  "description": "Inspect any website, understand how it's built, and recreate modern UI components faster.",
   "permissions": [
     "activeTab",
     "scripting",
@@ -13,7 +13,7 @@
     "<all_urls>"
   ],
   "action": {
-    "default_title": "Open UI Detective AI"
+    "default_title": "Open InspectUI"
   },
   "side_panel": {
     "default_path": "sidepanel/sidepanel.html"

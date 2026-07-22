@@ -393,7 +393,7 @@ function setupEventListeners() {
         if (btnText) btnText.textContent = 'INSPECTING (Double-click element to lock)';
       } else {
         toggleBtn.className = 'btn btn-inspector-outline';
-        if (btnText) btnText.textContent = 'Start Inspector';
+        if (btnText) btnText.textContent = 'Inspect Element';
       }
 
       const tab = await getActiveTab();

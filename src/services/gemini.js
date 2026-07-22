@@ -1,5 +1,5 @@
 /**
- * UI Detective AI - Gemini API Service Module
+ * InspectUI - Gemini API Service Module
  * Handles model discovery, error handling, and structured JSON generation.
  */
 
