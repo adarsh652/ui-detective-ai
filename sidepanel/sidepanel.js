@@ -28,7 +28,7 @@ async function sendTabMessage(tabId, message) {
       await chrome.scripting.insertCSS({
         target: { tabId: tabId },
         files: ['content.css']
-      }).catch(() => {});
+      }).catch(() => { });
 
       await chrome.scripting.executeScript({
         target: { tabId: tabId },
@@ -157,16 +157,16 @@ function generateAIPrompt(data, targetPlatform = 'v0_cursor') {
 
   if (targetPlatform === 'v0_cursor') {
     return `// Prompt for v0.dev / Cursor AI / ChatGPT\n` +
-           `Create a modern, responsive React component styled with Tailwind CSS for a <${tag}> element.\n` +
-           `Classes: ${classes}\n` +
-           `Content: ${content}\n` +
-           `Styles: font ${data.fontFamily || 'sans-serif'} (${data.fontSize || '16px'}), text color ${data.textColorHex || data.color || '#000000'}, background ${data.bgColorHex || data.backgroundColor || '#ffffff'}`;
+      `Create a modern, responsive React component styled with Tailwind CSS for a <${tag}> element.\n` +
+      `Classes: ${classes}\n` +
+      `Content: ${content}\n` +
+      `Styles: font ${data.fontFamily || 'sans-serif'} (${data.fontSize || '16px'}), text color ${data.textColorHex || data.color || '#000000'}, background ${data.bgColorHex || data.backgroundColor || '#ffffff'}`;
   }
 
   return `Create a modern, responsive React component styled with Tailwind CSS for a ${tag} element.\n` +
-         `Classes: ${classes}\n` +
-         `Content: ${content}\n` +
-         `Styles: ${JSON.stringify(data.computedStyles || {}, null, 2)}`;
+    `Classes: ${classes}\n` +
+    `Content: ${content}\n` +
+    `Styles: ${JSON.stringify(data.computedStyles || {}, null, 2)}`;
 }
 
 function generateReactComponent(data) {
@@ -179,13 +179,13 @@ function generateReactComponent(data) {
   const content = (data.textContent && data.textContent.trim()) ? data.textContent.trim() : `Sample ${tag} Content`;
 
   return `import React from 'react';\n\n` +
-         `export default function CustomElement() {\n` +
-         `  return (\n` +
-         `    <${tag} className="${classes}">\n` +
-         `      ${content}\n` +
-         `    </${tag}>\n` +
-         `  );\n` +
-         `}`;
+    `export default function CustomElement() {\n` +
+    `  return (\n` +
+    `    <${tag} className="${classes}">\n` +
+    `      ${content}\n` +
+    `    </${tag}>\n` +
+    `  );\n` +
+    `}`;
 }
 
 function renderBuildTab(elementData) {
@@ -295,7 +295,7 @@ function setupEventListeners() {
       navigator.clipboard.writeText(previewEl.textContent).then(() => {
         const textSpan = document.getElementById('copy-prompt-text');
         if (textSpan) textSpan.textContent = 'Copied!';
-        setTimeout(() => { if (textSpan) textSpan.textContent = '📋 Copy System Prompt'; }, 2000);
+        setTimeout(() => { if (textSpan) textSpan.textContent = 'Copy System Prompt'; }, 2000);
       });
     });
   }
@@ -307,7 +307,7 @@ function setupEventListeners() {
       navigator.clipboard.writeText(codeEl.textContent).then(() => {
         const textSpan = document.getElementById('copy-react-text');
         if (textSpan) textSpan.textContent = 'Copied!';
-        setTimeout(() => { if (textSpan) textSpan.textContent = '📋 Copy React Code'; }, 2000);
+        setTimeout(() => { if (textSpan) textSpan.textContent = 'Copy React Code'; }, 2000);
       });
     });
   }
@@ -376,22 +376,24 @@ function setupEventListeners() {
   if (toggleBtn) {
     toggleBtn.addEventListener('click', async () => {
       const isInspecting = toggleBtn.dataset.inspecting === 'true';
-      const newState = !isInspecting;
-      toggleBtn.dataset.inspecting = newState;
-
-      const btnText = document.getElementById('btn-text');
-      if (btnText) {
-        btnText.textContent = newState ? 'Stop Inspecting' : 'Start Inspecting';
+      const isLockedState = toggleBtn.classList.contains('btn-locked');
+      
+      let newState;
+      if (isLockedState) {
+        newState = true;
       } else {
-        toggleBtn.textContent = newState ? 'Stop Inspecting' : 'Start Inspecting';
+        newState = !isInspecting;
       }
 
+      toggleBtn.dataset.inspecting = newState ? 'true' : 'false';
+
+      const btnText = document.getElementById('btn-text');
       if (newState) {
-        toggleBtn.classList.remove('btn-primary');
-        toggleBtn.classList.add('btn-danger');
+        toggleBtn.className = 'btn btn-inspecting';
+        if (btnText) btnText.textContent = 'INSPECTING (Double-click element to lock)';
       } else {
-        toggleBtn.classList.remove('btn-danger');
-        toggleBtn.classList.add('btn-primary');
+        toggleBtn.className = 'btn btn-inspector-outline';
+        if (btnText) btnText.textContent = 'Start Inspector';
       }
 
       const tab = await getActiveTab();
@@ -741,20 +743,18 @@ chrome.runtime.onMessage.addListener((message) => {
       const btnText = document.getElementById('btn-text');
       if (toggleBtn) {
         toggleBtn.dataset.inspecting = 'false';
-        toggleBtn.classList.remove('btn-danger');
-        toggleBtn.classList.add('btn-primary');
-        if (btnText) btnText.textContent = 'Re-inspect Element';
-        else toggleBtn.textContent = 'Re-inspect Element';
+        toggleBtn.className = 'btn btn-locked';
+        if (btnText) btnText.textContent = '🔒 SELECTION LOCKED (Click page to unlock)';
+        else toggleBtn.textContent = '🔒 SELECTION LOCKED (Click page to unlock)';
       }
     } else if (message.action === 'ELEMENT_UNLOCKED') {
       const toggleBtn = document.getElementById('toggle-btn');
       const btnText = document.getElementById('btn-text');
       if (toggleBtn) {
         toggleBtn.dataset.inspecting = 'true';
-        toggleBtn.classList.remove('btn-primary');
-        toggleBtn.classList.add('btn-danger');
-        if (btnText) btnText.textContent = 'Stop Inspecting';
-        else toggleBtn.textContent = 'Stop Inspecting';
+        toggleBtn.className = 'btn btn-inspecting';
+        if (btnText) btnText.textContent = 'INSPECTING (Double-click element to lock)';
+        else toggleBtn.textContent = 'INSPECTING (Double-click element to lock)';
       }
     }
   }

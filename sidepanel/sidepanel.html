@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,19 +10,20 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
+
 <body>
   <div class="container">
     <!-- Header Bar with Settings Gear Toggle -->
     <header class="header">
       <div class="brand">
-        <svg class="logo-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg class="logo-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
-        <h1>UI Detective <span class="badge-ai">AI</span></h1>
+        <h1>UI DETECTIVE <span class="badge-ai">AI</span></h1>
       </div>
       <button id="settings-toggle-btn" class="icon-btn" title="AI Settings">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"></circle>
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
         </svg>
@@ -31,7 +33,7 @@
     <!-- Collapsible AI Configuration Drawer -->
     <div id="settings-panel" class="config-container collapsible-panel hidden">
       <div class="panel-header">
-        <span class="section-label">Gemini AI Configuration</span>
+        <span class="section-label">GEMINI AI CONFIGURATION</span>
       </div>
       <div class="api-key-row">
         <input type="password" id="api-key-input" class="input-text" placeholder="Paste Gemini API Key..." />
@@ -43,7 +45,7 @@
 
     <!-- Tech Stack Detection Bar -->
     <div class="tech-stack-container">
-      <span class="section-label">Detected Tech Stack</span>
+      <span class="section-label">DETECTED TECH STACK</span>
       <div id="tech-stack-badges" class="tech-badges-list">
         <span class="empty-tech">Click Inspect or refresh page</span>
       </div>
@@ -52,22 +54,22 @@
     <!-- Tabbed Navigation Bar -->
     <nav class="tabs-nav">
       <button id="tab-inspect-btn" class="tab-btn active" data-tab="inspect">
-        <span>🔍 Inspect</span>
+        <span>Inspect</span>
       </button>
       <button id="tab-understand-btn" class="tab-btn" data-tab="understand">
-        <span>💡 Understand</span>
+        <span>Understand</span>
       </button>
       <button id="tab-build-btn" class="tab-btn" data-tab="build">
-        <span>🛠️ Build</span>
+        <span>Build</span>
       </button>
     </nav>
 
     <main class="main-content">
       <!-- Global Inspection Toggle Button -->
       <div class="actions">
-        <button id="toggle-btn" class="btn btn-primary">
-          <span class="btn-icon">🔍</span>
-          <span id="btn-text">Start Inspecting</span>
+        <button id="toggle-btn" class="btn btn-inspector-outline" data-inspecting="false">
+          <span class="pulse-dot"></span>
+          <span id="btn-text">Start Inspector</span>
         </button>
       </div>
 
@@ -75,9 +77,15 @@
       <div id="view-inspect" class="tab-view">
         <div id="inspector-card" class="card empty-state">
           <div id="empty-view" class="empty-content">
-            <div class="empty-icon">🎯</div>
+            <div class="empty-icon-svg">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+            </div>
             <p class="empty-title">Inspector Inactive</p>
-            <p class="empty-desc">Click "Start Inspecting" and hover over elements on the webpage to inspect their design metrics.</p>
+            <p class="empty-desc">Click "Start Inspector" and hover over elements on the webpage to inspect their design metrics.</p>
           </div>
 
           <div id="data-view" class="data-content hidden">
@@ -93,7 +101,7 @@
             <!-- Extracted Code Snippet Box (Tailwind & Raw CSS Copy Buttons) -->
             <div class="snippet-box">
               <div class="snippet-header">
-                <span class="metric-label">Extracted Tokens & Rules</span>
+                <span class="metric-label">EXTRACTED TOKENS & RULES</span>
                 <div class="snippet-actions">
                   <button id="copy-css-btn" class="btn-copy btn-copy-css">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -116,9 +124,9 @@
 
             <!-- Instant Computed Telemetry -->
             <div class="telemetry-sections">
-              <!-- 📐 Layout & Alignment -->
+              <!-- Layout & Alignment -->
               <div class="telemetry-group">
-                <span class="group-title">📐 Layout & Alignment</span>
+                <span class="group-title">LAYOUT & ALIGNMENT</span>
                 <div class="metric-row">
                   <div class="metric-item">
                     <span class="metric-label">Display</span>
@@ -151,9 +159,9 @@
                 </div>
               </div>
 
-              <!-- 📏 Dimensions & Box Model -->
+              <!-- Dimensions & Box Model -->
               <div class="telemetry-group">
-                <span class="group-title">📏 Dimensions & Box Model</span>
+                <span class="group-title">DIMENSIONS & BOX MODEL</span>
                 <div class="metric-row">
                   <div class="metric-item">
                     <span class="metric-label">Padding</span>
@@ -180,9 +188,9 @@
                 </div>
               </div>
 
-              <!-- 🎨 Typography & Colors -->
+              <!-- Typography & Colors -->
               <div class="telemetry-group">
-                <span class="group-title">🎨 Typography & Colors</span>
+                <span class="group-title">TYPOGRAPHY & COLORS</span>
                 <div class="metric-item">
                   <span class="metric-label">Font Family</span>
                   <span class="metric-value font-mono" id="font-family">-</span>
@@ -227,9 +235,9 @@
                 </div>
               </div>
 
-              <!-- ♿ Accessibility & Responsiveness -->
+              <!-- Accessibility & Responsiveness -->
               <div class="telemetry-group">
-                <span class="group-title">♿ Accessibility & Responsiveness</span>
+                <span class="group-title">ACCESSIBILITY & RESPONSIVENESS</span>
                 <div class="metric-row">
                   <div class="metric-item">
                     <span class="metric-label">Contrast Ratio</span>
@@ -255,11 +263,11 @@
 
             <!-- On-Demand AI Actions -->
             <div class="ai-actions">
-              <button id="ai-analyze-btn" class="btn btn-ai-gradient">
-                <span>✨ Analyze Design (AI)</span>
+              <button id="ai-analyze-btn" class="btn btn-secondary-devtools">
+                <span>Analyze Design (AI)</span>
               </button>
-              <button id="ai-recreate-btn" class="btn btn-ai-outline">
-                <span>🤖 Generate Recreate Prompt</span>
+              <button id="ai-recreate-btn" class="btn btn-secondary-devtools">
+                <span>Generate Recreate Prompt</span>
               </button>
             </div>
           </div>
@@ -270,12 +278,9 @@
       <div id="view-understand" class="tab-view hidden">
         <div class="card ai-card">
           <div class="ai-card-header">
-            <div class="ai-title-row">
-              <span class="ai-sparkle">💡</span>
-              <span class="ai-card-title">AI Design System Audit</span>
-            </div>
-            <button id="trigger-understand-btn" class="btn-sm btn-ai-gradient">
-              ✨ Run Audit
+            <span class="card-section-label">AI DESIGN SYSTEM AUDIT</span>
+            <button id="trigger-understand-btn" class="btn-sm btn-secondary-devtools">
+              Run Audit
             </button>
           </div>
 
@@ -296,7 +301,15 @@
           <!-- Audit Output View -->
           <div id="understand-content" class="audit-output-container">
             <div id="understand-empty" class="empty-content">
-              <div class="empty-icon">💡</div>
+              <div class="empty-icon-svg">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                  <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+              </div>
               <p class="empty-title">No Audit Run Yet</p>
               <p class="empty-desc">Inspect an element and click "Run Audit" or "Analyze Design (AI)" to generate structured UX scores and recommendations.</p>
             </div>
@@ -314,14 +327,18 @@
               </div>
 
               <div class="audit-section">
-                <span class="audit-section-title purple">Key Improvements</span>
+                <span class="audit-section-title blue">Key Improvements</span>
                 <ul id="understand-improvements" class="audit-list"></ul>
               </div>
 
               <div class="snippet-box">
                 <div class="snippet-header">
-                  <span class="metric-label">Refactored Tailwind Component</span>
+                  <span class="metric-label">REFACTORED TAILWIND COMPONENT</span>
                   <button id="copy-refactored-btn" class="btn-copy">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                      <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                    </svg>
                     <span>Copy Snippet</span>
                   </button>
                 </div>
@@ -336,9 +353,14 @@
       <div id="view-build" class="tab-view hidden">
         <div id="build-empty" class="card empty-state">
           <div class="empty-content">
-            <div class="empty-icon">🛠️</div>
+            <div class="empty-icon-svg">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="16 18 22 12 16 6"></polyline>
+                <polyline points="8 6 2 12 8 18"></polyline>
+              </svg>
+            </div>
             <p class="empty-title">Prompt Engine Idle</p>
-            <p class="empty-desc">Click "Start Inspecting" and hover over an element on the webpage to instantly synthesize system prompts and React code.</p>
+            <p class="empty-desc">Click "Start Inspector" and hover over an element on the webpage to instantly synthesize system prompts and React code.</p>
           </div>
         </div>
 
@@ -346,12 +368,13 @@
           <!-- Card 1: AI Prompt Generator -->
           <div class="card ai-card">
             <div class="ai-card-header">
-              <div class="ai-title-row">
-                <span class="ai-sparkle">🤖</span>
-                <span class="ai-card-title">AI Prompt Synthesizer</span>
-              </div>
+              <span class="card-section-label">PROMPT SYNTHESIZER</span>
               <button id="copy-prompt-btn" class="btn-copy">
-                <span id="copy-prompt-text">📋 Copy System Prompt</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                </svg>
+                <span id="copy-prompt-text">Copy System Prompt</span>
               </button>
             </div>
             <div class="prompt-target-row">
@@ -369,12 +392,13 @@
           <!-- Card 2: Generated React Component -->
           <div class="card ai-card margin-top">
             <div class="ai-card-header">
-              <div class="ai-title-row">
-                <span class="ai-sparkle">⚡</span>
-                <span class="ai-card-title">Generated React Component</span>
-              </div>
+              <span class="card-section-label">REACT COMPONENT JSX</span>
               <button id="copy-react-code-btn" class="btn-copy">
-                <span id="copy-react-text">📋 Copy React Code</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                </svg>
+                <span id="copy-react-text">Copy React Code</span>
               </button>
             </div>
             <div class="snippet-box">
@@ -395,7 +419,7 @@
         <p class="modal-desc">Enter your Gemini API Key to unlock AI Design Audits and React Component Generation.</p>
         <div class="modal-body">
           <input type="password" id="modal-api-key-input" class="input-text" placeholder="Paste Gemini API Key..." />
-          <button id="modal-save-key-btn" class="btn btn-primary">Save & Unlock AI</button>
+          <button id="modal-save-key-btn" class="btn btn-secondary-devtools">Save & Unlock AI</button>
         </div>
       </div>
     </div>
@@ -407,4 +431,5 @@
   <script type="module" src="../src/services/gemini.js"></script>
   <script src="sidepanel.js"></script>
 </body>
+
 </html>
