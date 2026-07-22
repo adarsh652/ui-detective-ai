@@ -66,32 +66,35 @@ body {
 
 .brand {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 10px;
 }
 
 .logo-icon {
   color: var(--primary);
+  margin-top: 2px;
 }
 
 .brand-text {
   display: flex;
   flex-direction: column;
-  line-height: 1.15;
+  gap: 3px;
 }
 
 .brand-text h1 {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: -0.01em;
   color: var(--text-primary);
+  line-height: 1;
 }
 
 .tagline {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   letter-spacing: 0.02em;
+  line-height: 1.2;
 }
 
 .icon-btn {
